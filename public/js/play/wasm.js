@@ -1,7 +1,7 @@
 // Loading midnight.wasm. It's compiled once: one instance runs here, on the
 // main thread, for highlighting as you type (midnightTokens), and one in the
 // worker runs code (see runner.js), which gets the compiled module.
-import '/play/wasm_exec.js'
+import '/js/vendor/wasm_exec.js'
 
 // loadWasm fetches and compiles the wasm, compiling as it downloads. rest
 // sends it compressed ahead of time (midnight.wasm.br or .gz, see the

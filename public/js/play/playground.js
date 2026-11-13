@@ -8,15 +8,15 @@
 //   wasm.js      loads midnight.wasm
 //   examples.js  the Examples... menu
 //   share.js     share links
-import { dom, clipboard } from '/js/corvid.bundle.js'
-import { Editor, saved } from '/play/editor.js'
-import { lint } from '/play/problems.js'
-import { highlightLua } from '/play/highlight.js'
-import { Runner, cleanError } from '/play/runner.js'
-import { PageFrame } from '/play/page.js'
-import { loadWasm, start } from '/play/wasm.js'
-import { EXAMPLES } from '/play/examples.js'
-import { encode, decode } from '/play/share.js'
+import { dom, clipboard } from '/js/vendor/corvid.bundle.js'
+import { Editor, saved } from '/js/play/editor.js'
+import { lint } from '/js/play/problems.js'
+import { highlightLua } from '/js/play/highlight.js'
+import { Runner, cleanError } from '/js/play/runner.js'
+import { PageFrame } from '/js/play/page.js'
+import { loadWasm, start } from '/js/play/wasm.js'
+import { EXAMPLES } from '/js/play/examples.js'
+import { encode, decode } from '/js/play/share.js'
 
 // corvid's el wraps an element: .on, .text, .value, classes and attrs. What
 // it doesn't cover (scroll position, an iframe's window, ...) is on .el, the
@@ -219,7 +219,7 @@ const initialCode = async () => {
 
 const boot = async () => {
   editor.set(await initialCode())
-  const module = await loadWasm('/play/midnight.wasm')
+  const module = await loadWasm('/js/vendor/midnight.wasm')
   await start(module)
   runner = new Runner(module, handlers)
   editor.refresh() // (highlighted, now that the lexer is here)

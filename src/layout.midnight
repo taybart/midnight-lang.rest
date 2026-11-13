@@ -54,7 +54,7 @@ local function pageFor(path) {
 local Nav = ({ path }) -> {
   return <> 
     <script type="module">
-      import {dom, style, ls} from '/js/corvid.bundle.js'
+      import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
       {
         const menu = new dom.el('#menu-toggle');
         const sidebar = new dom.el('#sidebar');
@@ -167,7 +167,7 @@ return ({ title, path, children, wide }) -> <html>
       <main class={cx("content", { wide = wide })}>{children}</main>
     </div>
     <script type="module">
-      import {dom, style, ls} from '/js/corvid.bundle.js'
+      import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
       {
         // listen to system theme if nothing set
         if (!ls.get('theme')) style.handleThemeSwitch()
@@ -221,7 +221,7 @@ return ({ title, path, children, wide }) -> <html>
           const btn = e.target.closest('.try-btn')
           if (!btn) return
           const code = btn.closest('.code-block').querySelector('code')
-          const { playgroundUrl } = await import('/play/share.js')
+          const { playgroundUrl } = await import('/js/play/share.js')
           location.href = await playgroundUrl(code ? code.textContent : '')
         })
         document.addEventListener('click', (e) => {

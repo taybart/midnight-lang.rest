@@ -536,7 +536,7 @@ pre.code code {
 :is(pre.code, .pg-highlight) .tok-tag { color: var(--tok-tag); }
 :is(pre.code, .pg-highlight) .tok-attr { color: var(--tok-attr); }
 
-/* Playground (src/playground.midnight, public/play) ------------------------ */
+/* Playground (src/playground.midnight, public/js/play) ------------------------ */
 
 .content.wide {
   max-width: none;

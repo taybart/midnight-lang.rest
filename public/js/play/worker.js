@@ -4,7 +4,7 @@
 //
 // An interactive page's state lives here between clicks: the page sends each
 // action as a `dispatch`, and gets back what changed.
-importScripts('/play/wasm_exec.js')
+importScripts('/js/vendor/wasm_exec.js')
 
 let ready
 

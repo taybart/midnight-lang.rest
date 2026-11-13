@@ -61,7 +61,7 @@ export class Runner {
   }
 
   #start() {
-    this.#worker = new Worker('/play/worker.js')
+    this.#worker = new Worker('/js/play/worker.js')
     this.#worker.postMessage({ type: 'init', module: this.#module })
     this.#worker.onmessage = (e) => {
       const msg = e.data

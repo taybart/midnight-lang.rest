@@ -1,12 +1,12 @@
 -- The playground: midnight compiled to wasm, running in the visitor's browser
--- (public/play/playground.js does the work; this is just the furniture).
+-- (public/js/play/playground.js does the work; this is just the furniture).
 --
 -- The editor is a transparent <textarea> laid over a highlighted copy of its
 -- text, colored by the compiler's own lexer (midnightTokens in the wasm),
 -- w/ line numbers beside it. The linter (midnightLint) runs as you type: its
 -- problems mark their lines, and hovering one shows what's wrong.
 --
--- playground.js imports the other modules in public/play. They're preloaded
+-- playground.js imports the other modules in public/js/play. They're preloaded
 -- (modulepreload) so the browser fetches them all at once, not import by
 -- import.
 --
@@ -90,14 +90,14 @@ return () -> <div class="playground">
     local ex = readExample(file)
     return <template class="pg-example" data-name={ex.name}>{ex.code}</template>
   })}
-  <link rel="modulepreload" href="/js/corvid.bundle.js"/>
-  <link rel="modulepreload" href="/play/editor.js"/>
-  <link rel="modulepreload" href="/play/highlight.js"/>
-  <link rel="modulepreload" href="/play/problems.js"/>
-  <link rel="modulepreload" href="/play/runner.js"/>
-  <link rel="modulepreload" href="/play/page.js"/>
-  <link rel="modulepreload" href="/play/wasm.js"/>
-  <link rel="modulepreload" href="/play/examples.js"/>
-  <link rel="modulepreload" href="/play/share.js"/>
-  <script type="module" src="/play/playground.js"></script>
+  <link rel="modulepreload" href="/js/vendor/corvid.bundle.js"/>
+  <link rel="modulepreload" href="/js/play/editor.js"/>
+  <link rel="modulepreload" href="/js/play/highlight.js"/>
+  <link rel="modulepreload" href="/js/play/problems.js"/>
+  <link rel="modulepreload" href="/js/play/runner.js"/>
+  <link rel="modulepreload" href="/js/play/page.js"/>
+  <link rel="modulepreload" href="/js/play/wasm.js"/>
+  <link rel="modulepreload" href="/js/play/examples.js"/>
+  <link rel="modulepreload" href="/js/play/share.js"/>
+  <script type="module" src="/js/play/playground.js"></script>
 </div>

@@ -1,6 +1,6 @@
 // Highlighting for the editor, colored by the compiler's own lexer
 // (midnightTokens, from the wasm instance on the main thread, see wasm.js).
-import { dom } from '/js/corvid.bundle.js'
+import { dom } from '/js/vendor/corvid.bundle.js'
 
 // token kinds from the compiler's lexer -> the docs' classes (see lib/highlight.mn)
 // biome-ignore format: a table
