@@ -730,6 +730,30 @@ iframe.pg-pane {
   }
 }
 
+@media (max-width: 900px) and (pointer: coarse) {
+  /* Run floats in the bottom right, where a thumb can reach it (touch
+     screens only: a narrow desktop window keeps it in the toolbar) */
+  .pg-toolbar .pg-run {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    z-index: 3;
+    min-width: 4.5rem;
+    min-height: 3rem;
+    padding: 0.75rem 1.4rem;
+    font-size: 1rem;
+    border-radius: 999px;
+    color: var(--bg);
+    background: var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--accent-strong);
+  }
+
+  /* (room to scroll past it) */
+  .playground {
+    padding-bottom: 4.5rem;
+  }
+}
+
 /* Tables ----------------------------------------------------------------- */
 
 table {

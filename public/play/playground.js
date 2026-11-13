@@ -319,11 +319,18 @@ const finish = (res) => {
   else setStatus(`done in ${ms}ms${pageLive ? ', the page is live' : ''}`)
 }
 
+// on phones, the output is below the editor (and Run floats, see site.css)
+const stacked = window.matchMedia('(max-width: 900px)')
+
 const runCode = () => {
   if (!wasmModule) return
   if (run || action) stop('stopped')
   outputEl.replaceChildren()
   showTab('output')
+  if (stacked.matches) {
+    input.blur() // (closes the keyboard)
+    document.querySelector('.pg-output').scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   setStatus('running...')
   pageLive = false
   run = { started: performance.now(), wrote: false, timer: timeout('the code is') }
@@ -482,7 +489,9 @@ const boot = async () => {
   startWorker()
   highlight()
   runBtn.disabled = false
-  setStatus('ready (ctrl / cmd + enter runs)')
+  // (no keyboard shortcut to mention on a touch screen)
+  const touch = window.matchMedia('(pointer: coarse)').matches
+  setStatus(touch ? 'ready' : 'ready (ctrl / cmd + enter runs)')
   input.focus()
 }
 
