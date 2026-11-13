@@ -10,7 +10,7 @@ local { map, cx } = require('midnight.markup')
 local Meta = require('lib/meta')
 
 -- where the site lives, for link previews (they need absolute urls)
-local SITE_URL = 'https://midnightstack.rest'
+local SITE_URL = 'https://midnight-lang.rest'
 
 -- the nav, and each page's link preview text
 local pages = {
@@ -28,7 +28,7 @@ local pages = {
   },
   {
     path = '/from-lua', title = 'Coming from Lua',
-    description = "What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.",
+    description = 'What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.',
   },
   {
     path = '/markup', title = 'Markup',
