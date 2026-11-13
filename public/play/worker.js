@@ -25,7 +25,7 @@ onmessage = async (e) => {
     const res = midnightRun(msg.src, output)
     postMessage({ type: 'done', lua: res.lua, html: res.html, interactive: !!res.interactive, error: res.error })
   } else if (msg.type === 'dispatch') {
-    const res = midnightDispatch(msg.action, JSON.stringify(msg.data ?? {}), output)
+    const res = midnightDispatch(msg.action, msg.data ?? {}, output)
     postMessage({ type: 'dispatched', req: msg.req, html: res.html, error: res.error })
   }
 }

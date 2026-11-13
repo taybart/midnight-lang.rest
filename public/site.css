@@ -751,6 +751,19 @@ th {
   font-weight: 600;
 }
 
+/* .content breaks long words anywhere, which inside a table lets a wordy
+   column squeeze its neighbor down to a letter per line (on phones). In
+   tables, words break normally, and the first column (usually a name) stays
+   on one line; .table-scroll scrolls what doesn't fit. */
+table {
+  overflow-wrap: normal;
+}
+
+td:first-child code,
+th:first-child {
+  white-space: nowrap;
+}
+
 tr:nth-child(even) td {
   background: var(--table-stripe);
 }
