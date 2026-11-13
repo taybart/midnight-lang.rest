@@ -853,6 +853,11 @@ iframe.pg-pane {
   .pg-pane {
     min-height: 14rem;
   }
+
+  /* (as tall as its page, see page.js: the page scrolls w/ the playground) */
+  iframe.pg-pane {
+    flex: none;
+  }
 }
 
 /* iOS zooms in on a text field w/ a font under 16px when it's tapped */
