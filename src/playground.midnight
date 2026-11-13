@@ -31,14 +31,22 @@ return () -> <div class="playground">
       </div>
       <pre id="pg-output" class="code pg-pane" data-pane="output"></pre>
       <pre id="pg-lua" class="code pg-pane" data-pane="lua" hidden></pre>
-      <iframe id="pg-page" class="pg-pane" data-pane="page" sandbox="" title="rendered page" hidden></iframe>
+      <iframe
+        id="pg-page"
+        class="pg-pane"
+        data-pane="page"
+        sandbox="allow-scripts allow-forms"
+        title="rendered page"
+        hidden
+      ></iframe>
     </div>
   </div>
   <p class="pg-about">
     Everything runs in your browser: the compiler and VM are compiled to
     WebAssembly, and nothing you type is sent anywhere until you share it.
-    Return markup to see it on the Page tab. Pages render as static HTML here;
-    serve them with rest to click around.
+    Return markup to see it on the Page tab. Pages with actions (like
+    onclick) are live: clicks run your handlers here, the way rest runs
+    them on a server.
   </p>
   <script type="module" src="/play/playground.js"></script>
 </div>

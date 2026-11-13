@@ -97,6 +97,48 @@ return <html>
 `,
   },
   {
+    name: 'A clickable page',
+    code: `local { state, css } = require('midnight.markup')
+
+local s = css({
+  sky = {
+    font_family = 'system-ui, sans-serif',
+    background = '#0b0f1d',
+    color = '#e8ebf4',
+    padding = '2rem',
+    min_height = '100vh',
+    margin = 0,
+  },
+  button = { font_size = '1rem', padding = '.5rem 1rem', cursor = 'pointer' },
+})
+
+-- each component keeps its own state between clicks
+local Sheep = ({ owl = 'night owl' }) -> {
+  local st = state({ count = 0 })
+  local mood = match st.count {
+    0 => { 'wide awake' }
+    1 | 2 | 3 => { 'getting drowsy' }
+    _ => { 'fast asleep' }
+  }
+  return <section>
+    <h2>goodnight, {owl}</h2>
+    <p>{st.count} sheep so far, {mood}</p>
+    <button class={s.button} onclick={() -> {
+      st.count += 1
+      print("{owl} counted sheep #{st.count}")
+    }}>count another</button>
+  </section>
+}
+
+return <html>
+  <body class={s.sky}>
+    <Sheep/>
+    <Sheep owl="olive"/>
+  </body>
+</html>
+`,
+  },
+  {
     name: 'A loop that never ends',
     code: `-- runs are stopped after ${TIMEOUT_MS / 1000} seconds
 local sheep = 0
@@ -210,31 +252,51 @@ const append = (text, cls) => {
 
 let wasmModule
 let worker
-let run = null // { started, timer, wrote }
+let run = null // the run in progress: { started, timer, wrote }
+let action = null // the page action in progress: { req, started, timer }
+let pageLive = false // whether the worker holds the shown page's state
 
 const startWorker = () => {
   worker = new Worker('/play/worker.js')
   worker.postMessage({ type: 'init', module: wasmModule })
   worker.onmessage = (e) => {
-    if (!run) return
     const msg = e.data
     if (msg.type === 'out') {
-      run.wrote = true
+      if (run) run.wrote = true
       append(msg.text)
-    } else if (msg.type === 'done') {
+    } else if (msg.type === 'done' && run) {
       finish(msg)
+    } else if (msg.type === 'dispatched' && action) {
+      finishAction(msg)
     }
   }
 }
 
+// cleanError keeps the traceback frames in the user's code (the rest are
+// the runtime and the playground calling in, which says nothing useful)
+const cleanError = (error) => {
+  const [message, trace] = error.split('\nstack traceback:\n')
+  if (trace === undefined) return error.trimEnd()
+  const frames = trace.split('\n').filter((l) => l.includes('playground.mn:'))
+  return (frames.length ? `${message}\nstack traceback:\n${frames.join('\n')}` : message).trimEnd()
+}
+
+// stop ends whatever is running by replacing the worker (and the page's
+// state goes w/ it)
 const stop = (why) => {
-  clearTimeout(run.timer)
-  run = null
+  for (const job of [run, action]) if (job) clearTimeout(job.timer)
+  run = action = null
+  pageLive = false
   worker.terminate()
   startWorker()
   append(`\n${why}\n`, 'pg-err')
   setStatus(why, true)
 }
+
+const timeout = (what) => setTimeout(
+  () => stop(`stopped: ${what} still running after ${TIMEOUT_MS / 1000}s (a loop that never ends?)`),
+  TIMEOUT_MS,
+)
 
 const finish = (res) => {
   clearTimeout(run.timer)
@@ -243,37 +305,95 @@ const finish = (res) => {
   run = null
 
   luaEl.textContent = res.lua || ''
-  if (res.error) {
-    // (the traceback's last frame is the host calling in, which says nothing)
-    const error = res.error.replace(/\n\t\[G\]: \?/g, '').trimEnd()
-    append(`${wrote ? '\n' : ''}${error}\n`, 'pg-err')
-  }
+  if (res.error) append(`${wrote ? '\n' : ''}${cleanError(res.error)}\n`, 'pg-err')
 
+  pageLive = !!res.interactive
   pageTab.disabled = !res.html
-  pageEl.srcdoc = res.html || ''
+  pageEl.srcdoc = res.html ? withBridge(res.html) : ''
   if (res.html) {
     showTab('page')
   } else if (!wrote && !res.error) {
     append('(nothing printed)', 'pg-note')
   }
-  setStatus(res.error ? 'error' : `done in ${ms}ms`, !!res.error)
+  if (res.error) setStatus('error', true)
+  else setStatus(`done in ${ms}ms${pageLive ? ', the page is live' : ''}`)
 }
 
 const runCode = () => {
   if (!wasmModule) return
-  if (run) stop('stopped')
+  if (run || action) stop('stopped')
   outputEl.replaceChildren()
   showTab('output')
   setStatus('running...')
-  run = {
-    started: performance.now(),
-    wrote: false,
-    timer: setTimeout(
-      () => stop(`stopped: still running after ${TIMEOUT_MS / 1000}s (a loop that never ends?)`),
-      TIMEOUT_MS,
-    ),
-  }
+  pageLive = false
+  run = { started: performance.now(), wrote: false, timer: timeout('the code is') }
   worker.postMessage({ type: 'run', src: input.value })
+}
+
+// clickable pages ------------------------------------------------------------------
+
+// The page's client script POSTs each action (ex. a click) to its server. In
+// the iframe, the bridge answers those requests instead: it hands them to
+// this page (postMessage), which runs them in the worker, where the page's
+// state lives, and sends back what changed. The iframe is sandboxed w/o
+// allow-same-origin, so it can only talk to us through messages.
+const RPC_PATH = '/__midnight_rpc__' // (the rpc url the wasm mounts pages with)
+const BRIDGE = `<script>(() => {
+  const pending = new Map()
+  let next = 0
+  const fetch = window.fetch.bind(window)
+  window.fetch = (url, opts) => {
+    if (url !== '${RPC_PATH}') return fetch(url, opts)
+    const { id, data } = JSON.parse(opts.body)
+    const req = ++next
+    return new Promise((resolve) => {
+      pending.set(req, resolve)
+      parent.postMessage({ type: 'midnight:rpc', req, action: id, data }, '*')
+    })
+  }
+  addEventListener('message', (e) => {
+    const msg = e.data
+    if (e.source !== parent || !msg || msg.type !== 'midnight:rpc-result') return
+    const resolve = pending.get(msg.req)
+    if (!resolve) return
+    pending.delete(msg.req)
+    resolve(new Response(msg.error ?? msg.html ?? '', {
+      status: msg.error ? 500 : 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }))
+  })
+})()</script>`
+
+// withBridge puts the bridge first, so it's there before the page's scripts
+const withBridge = (html) => html.replace(/^(<!DOCTYPE html>)?/i, (doctype) => doctype + BRIDGE)
+
+const reply = (req, res) =>
+  pageEl.contentWindow?.postMessage({ type: 'midnight:rpc-result', req, html: res.html, error: res.error }, '*')
+
+window.addEventListener('message', (e) => {
+  const msg = e.data
+  if (e.source !== pageEl.contentWindow || !msg || msg.type !== 'midnight:rpc') return
+  if (!pageLive || run) {
+    reply(msg.req, { error: "the page isn't running anymore (run it again)" })
+    return
+  }
+  // (the client script sends one action at a time)
+  action = { req: msg.req, started: performance.now(), timer: timeout('an action is') }
+  setStatus('running an action...')
+  worker.postMessage({ type: 'dispatch', req: msg.req, action: msg.action, data: msg.data })
+})
+
+const finishAction = (res) => {
+  clearTimeout(action.timer)
+  const ms = Math.round(performance.now() - action.started)
+  action = null
+  if (res.error) {
+    append(`${cleanError(res.error)}\n`, 'pg-err')
+    setStatus('an action failed (see Output)', true)
+  } else {
+    setStatus(`action ran in ${ms}ms`)
+  }
+  reply(res.req, res)
 }
 
 // editing ------------------------------------------------------------------------
