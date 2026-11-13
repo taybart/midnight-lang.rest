@@ -848,6 +848,15 @@ iframe.pg-pane {
 
   .pg-tabs {
     margin-top: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  /* (on its own line, under the tabs, wrapping: a long message would push
+     them around, and get cut off) */
+  .pg-status {
+    flex-basis: 100%;
+    margin-left: 0;
+    white-space: normal;
   }
 
   .pg-pane {

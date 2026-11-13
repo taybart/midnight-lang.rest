@@ -59,10 +59,12 @@ return () -> <div class="playground">
       <div id="pg-tip" class="pg-tip" role="tooltip" hidden></div>
     </div>
     <div class="pg-tabs" role="tablist">
-      <button type="button" data-tab="output" class="active">Output</button>
-      <button type="button" data-tab="lua">Lua</button>
-      <button type="button" data-tab="page" disabled title="return markup to see it rendered">Page</button>
-      <span id="pg-status" class="pg-status">waking up...</span>
+      <div>
+        <button type="button" data-tab="output" class="active">Output</button>
+        <button type="button" data-tab="lua">Lua</button>
+        <button type="button" data-tab="page" disabled title="return markup to see it rendered">Page</button>
+      </div>
+      <div id="pg-status" class="pg-status">waking up...</div>
     </div>
     <div class="pg-output">
       <pre id="pg-output" class="code pg-pane" data-pane="output"></pre>
@@ -77,13 +79,13 @@ return () -> <div class="playground">
       ></iframe>
     </div>
   </div>
-  <p class="pg-about">
+  {--[[<p class="pg-about">
     Everything runs in your browser: the compiler and VM are compiled to
     WebAssembly, and nothing you type is sent anywhere until you share it.
     Return markup to see it on the Page tab. Pages with actions (like
     onclick) are live: clicks run your handlers here, the way rest runs
     them on a server.
-  </p>
+  </p>--]]}
   {map(EXAMPLES, (file) -> {
     local ex = readExample(file)
     return <template class="pg-example" data-name={ex.name}>{ex.code}</template>
