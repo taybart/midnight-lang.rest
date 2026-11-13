@@ -12,6 +12,7 @@ local pages = {
   { path = '/', title = 'Introduction' },
   { path = '/getting-started', title = 'Getting Started' },
   { path = '/reference', title = 'Reference' },
+  { path = '/from-lua', title = 'Coming from Lua' },
   { path = '/markup', title = 'Markup' },
   { path = '/tools', title = 'Tools' },
 }

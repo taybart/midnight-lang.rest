@@ -1,8 +1,9 @@
 -- highlight.midnight — a tiny syntax highlighter for fenced code blocks.
 --
 -- midnight code is split by the compiler's own lexer (`midnight.syntax`), so
--- it's colored the way the compiler reads it, markup included. `sh` and
--- `json` have small scanners here. Spans are <span class="tok-*">, and token
+-- it's colored the way the compiler reads it, markup included. `sh`, `json`,
+-- and `rest` / `hcl` (whose MIDNIGHT heredocs are midnight) have small
+-- scanners here. Spans are <span class="tok-*">, and token
 -- colors are pure CSS variables (--tok-*), so themes restyle every color in
 -- one place — see site.css.
 --
@@ -257,12 +258,126 @@ local function scanJson(s) {
   return out
 }
 
+-- rest (hcl) ---------------------------------------------------------------
+
+-- heredocs w/ these tags hold code, highlighted as midnight
+local HEREDOC_CODE = { MIDNIGHT = true, MN = true, LUA = true }
+
+-- an hcl string from i (at its `"`), w/ `${...}` interpolations
+local function hclString(s, i, out) {
+  local n = #s
+  local j = i + 1
+  local buf = { '"' }
+  while j <= n {
+    local d = s:sub(j, j)
+    if d == '\\' {
+      buf[#buf + 1] = s:sub(j, j + 1)
+      j = j + 2
+    } elseif d == '"' || d == '\n' {
+      if d == '"' { buf[#buf + 1] = d; j = j + 1 }
+      break
+    } elseif (d == '$' || d == '%') && s:sub(j + 1, j + 1) == '{' {
+      local close = s:find('}', j + 2, true)
+      if close == nil { buf[#buf + 1] = d; j = j + 1 } else {
+        span(out, 'tok-string', table.concat(buf))
+        buf = {}
+        span(out, 'tok-interp', s:sub(j, j + 1))
+        text(out, s:sub(j + 2, close - 1))
+        span(out, 'tok-interp', '}')
+        j = close + 1
+      }
+    } else {
+      buf[#buf + 1] = d
+      j = j + 1
+    }
+  }
+  if #buf > 0 { span(out, 'tok-string', table.concat(buf)) }
+  return j
+}
+
+local function scanHcl(s) {
+  local out = {}
+  local n = #s
+  local i = 1
+  local lineStart = true -- only whitespace since the last newline
+  while i <= n {
+    local c = s:sub(i, i)
+    local start = lineStart
+    if c != ' ' && c != '\t' { lineStart = c == '\n' }
+
+    if c == '#' || s:sub(i, i + 1) == '//' {
+      local e = s:find('\n', i, true) || n + 1
+      span(out, 'tok-comment', s:sub(i, e - 1))
+      i = e
+    } elseif s:sub(i, i + 1) == '/*' {
+      local e = s:find('*/', i + 2, true)
+      e = if e { e + 2 } else { n + 1 }
+      span(out, 'tok-comment', s:sub(i, e - 1))
+      i = e
+    } elseif s:sub(i, i + 1) == '<<' && s:sub(i + 2):match('^%-?[%a_][%w_]*\n') {
+      -- heredoc: <<TAG / <<-TAG, up to a line that's just TAG
+      local dash, tag = s:sub(i + 2):match('^(%-?)([%a_][%w_]*)')
+      local bodyStart = i + 2 + #dash + #tag + 1
+      local close = s:find('\n[ \t]*' .. tag .. '[ \t]*\n', bodyStart - 1) || s:find('\n[ \t]*' .. tag .. '[ \t]*$', bodyStart - 1)
+      local bodyEnd = if close { close } else { n + 1 }
+      span(out, 'tok-operator', '<<' .. dash)
+      span(out, 'tok-builtin', tag)
+      text(out, '\n')
+      local body = s:sub(bodyStart, bodyEnd - 1)
+      if HEREDOC_CODE[tag:upper()] {
+        for _, x in ipairs(scanMidnight(body)) { out[#out + 1] = x }
+      } else {
+        span(out, 'tok-string', body)
+      }
+      if close {
+        local line = s:match('^\n[ \t]*' .. tag, close)
+        text(out, line:sub(1, #line - #tag))
+        span(out, 'tok-builtin', tag)
+        i = close + #line
+      } else {
+        i = n + 1
+      }
+    } elseif c == '"' {
+      i = hclString(s, i, out)
+    } elseif isDigit(c) {
+      local e = scanNumber(s, i)
+      span(out, 'tok-number', s:sub(i, e - 1))
+      i = e
+    } elseif isIdentStart(c) {
+      local j = i
+      while j <= n && s:sub(j, j):match('[%w_%-]') { j = j + 1 }
+      local word = s:sub(i, j - 1)
+      local after = s:sub(j):match('^[ \t]*(.)') || ''
+      if word == 'true' || word == 'false' || word == 'null' {
+        span(out, 'tok-const', word)
+      } elseif after == '(' {
+        span(out, 'tok-function', word)
+      } elseif start && (after == '"' || after == '{') {
+        span(out, 'tok-keyword', word) -- a block: `server {`, `handler "GET" "/" {`
+      } elseif after == '=' && s:sub(j):match('^[ \t]*=[^=]') {
+        span(out, 'tok-attr', word)
+      } else {
+        text(out, word)
+      }
+      i = j
+    } elseif PUNCT[c] || c == '{' || c == '}' || c == '=' {
+      span(out, 'tok-punct', c)
+      i = i + 1
+    } else {
+      text(out, c)
+      i = i + 1
+    }
+  }
+  return out
+}
+
 -- public -----------------------------------------------------------------
 
 local LANG = {
   midnight = scanMidnight, mn = scanMidnight,
   sh = scanSh, bash = scanSh, shell = scanSh, zsh = scanSh,
   json = scanJson,
+  rest = scanHcl, hcl = scanHcl,
 }
 
 function M.highlight(lang, code) {

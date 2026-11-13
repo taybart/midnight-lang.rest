@@ -41,6 +41,15 @@ server {
     })
   }
 
+  handler "GET" "/from-lua" {
+    cache = locals.cache_ttl
+    page = tmpl(locals.handler, {
+      path  = "/from-lua",
+      title = "Coming from Lua",
+      file  = "from-lua.md"
+    })
+  }
+
   handler "GET" "/markup" {
     cache = locals.cache_ttl
     page = tmpl(locals.handler, {

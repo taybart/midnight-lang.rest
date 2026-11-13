@@ -128,7 +128,7 @@ local Card = (props) -> <section class="card">
   {props.children}
 </section>
 
-<Card title="hi"><p>body</p></Card>
+return <Card title="hi"><p>body</p></Card>
 ```
 
 Components run when they're rendered (top down, parents first), not when the
@@ -174,7 +174,7 @@ local s = css({
   title = { color = 'gold' },
 })
 
-<section class={s.card}><h2 class={s.title}>hi</h2></section>
+return <section class={s.card}><h2 class={s.title}>hi</h2></section>
 ```
 
 - Property names in camelCase or snake_case become kebab-case. Values are used
@@ -215,7 +215,7 @@ export { default as BlameButton } from './elements/blame-button.js'
 
 ```midnight
 local { CopyButton } = require('elements')
-<CopyButton src={url}><button>copy</button></CopyButton>
+return <CopyButton src={url}><button>copy</button></CopyButton>
 ```
 
 - The components render their tag, w/ their props as attributes, and their

@@ -1,219 +1,478 @@
 # Reference
 
-Midnight is a syntax layer over Lua: every construct lowers to ordinary Lua
-5.1 (plus `goto`), so the language maps closely to Lua. This page covers the
-syntax; the [CLI](/getting-started) and
-[markup](https://github.com/taybart/midnight/blob/main/docs/MARKUP.md) are
-documented separately.
+Everything Midnight writes becomes ordinary Lua 5.1 (with `goto`), so the
+runtime half of the language (values, metatables, closures, coroutines, the
+standard library) is Lua's, and the [Lua manual](https://www.lua.org/manual/5.1/)
+still applies. This page is the syntax half. [Markup](/markup) and the
+[CLI](/getting-started) have their own pages, and [Coming from Lua](/from-lua)
+lists everything that behaves differently.
 
-## Comments
+Most of this syntax comes from [Erde](https://erde-lang.github.io), and its
+[reference](https://erde-lang.github.io/reference) is worth a read too.
+
+## The shape of it
+
+Blocks are braces. Statements end at the end of a line (or at a `;`, if you
+like them). There's no `then`, `do`, or `end` anywhere.
 
 ```midnight
--- a line comment
---[[ a block comment ]]
+local function lights_out(rooms) {
+  for _, room in ipairs(rooms) {
+    if room.lamp { room.lamp = false }
+  }
+}
 ```
 
-## Types
-
-Midnight has the same types as Lua: `nil`, booleans, numbers, strings, tables,
-and functions.
+Comments are the same as Lua's, including block comments with `=` levels for
+text that contains `]]`:
 
 ```midnight
-local n = 42
-local hex = 0xff
-local bin = 0b1010     -- 10
-local flag = true
-local nothing = nil
+-- until the end of the line
+--[[ until the brackets ]]
+--[==[ even if there's a ]] in here ]==]
 ```
 
-### Strings
+Lists inside `()`, `[]`, and `{}` can always end with a comma, which keeps
+diffs quiet when the list grows a line.
 
-Single quotes are literal; double quotes and block strings interpolate
-`{expr}`. Interpolation formats (`{expr:%spec}`) format a value with
-`string.format`.
+## Values
+
+`nil`, `true`, `false`, numbers, strings, tables, and functions, as in Lua.
+Numbers are doubles, written any way Lua 5.4 allows, plus `0b` binary:
 
 ```midnight
-local name = 'world'                 -- literal, no interpolation
-print("hello {name}")                -- hello world
-print("progress {1/3:%.1f}%")        -- progress 0.3%
-print([[
-  a block string
-  also interpolates: {name}
+print(23, 0.5, 2e3)    -- 23 0.5 2000
+print(0x17, 0b10111)   -- 23 23
+print(0x1.8p1)         -- 3 (a hex float: 1.5 * 2^1)
+```
+
+## Strings
+
+Quotes, escapes, and `[[block strings]]` work like Lua's. What's new is that
+double quoted and block strings fill in `{expressions}`:
+
+```midnight
+local hour, owl = 3, 'olive'
+
+print("{owl} is up at {hour}am")    -- olive is up at 3am
+print("in an hour: {hour + 1}am")   -- in an hour: 4am
+print('{owl} stays literal')        -- {owl} stays literal
+print("\{owl}")                     -- {owl}
+```
+
+Single quotes never interpolate, which makes them the easy way to write text
+full of braces. In the other two, `\{` is a literal brace (escaping the
+closing `}` too is allowed, not required). Values go through `tostring`, so a
+`nil` shows up as `nil` rather than an error.
+
+Add `:%spec` to an interpolation to run it through `string.format`:
+
+```midnight
+local moon = 0.734
+print("moon {moon * 100:%.0f}% full")  -- moon 73% full
+print("color #{0x1d2b53:%06x}")        -- color #1d2b53
+```
+
+The spec is a single `string.format` directive (flags, width, precision, and
+one of `c d i o x X e E f g G q s`). The `%` has to come right after the `:`,
+which is how `{owl:upper()}` stays a method call.
+
+A block string interpolates too, and skips a newline right after `[[`, as in
+Lua:
+
+```midnight
+local bedtime = 23
+io.write([[
+  lights out at {bedtime}:00
+  alarm at {(bedtime + 8) % 24}:00
 ]])
 ```
 
+A string literal can be the start of a method call with no extra
+parentheses: `'%02d:%02d':format(h, m)`.
+
 ## Tables
 
-Tables are Midnight's only composite type: objects, arrays, and both at once.
+One structure for everything, as in Lua:
 
 ```midnight
-local t = { a = 1, b = 2 }
-t.c = 3
-print(t.a, t['b'], t.c)   -- 1 2 3
+local sky = { moon = 'waning', 'orion', 'lyra' }
+sky.clouds = false
+print(sky.moon, sky[2], #sky) -- waning lyra 2
 ```
+
+Fields are separated by commas only (Lua's `;` separator isn't allowed).
 
 ### Destructuring
 
+Declare names from a table's fields with braces, or from its array part with
+brackets:
+
 ```midnight
-local { map, filter } = require('pl.tablex')   -- fields
-local [ first, second ] = { 'hello', 'world' } -- indices
-local { name = 'anon' } = opts                  -- with a default
+local { moon, clouds } = sky
+local [ brightest, second ] = sky
 ```
+
+Each name can carry a fallback for when the value is `nil`, and a field can be
+renamed with `field: name` (the rename goes first, then the fallback):
+
+```midnight
+local { stars = 0 } = sky                   -- sky.stars or 0
+local { moon: phase } = sky                 -- phase = sky.moon
+local { fog: visibility = 'clear' } = sky   -- sky.fog, or 'clear'
+```
+
+Parameters destructure the same way, which is handy for options tables and
+component props:
+
+```midnight
+local function alarm({ hour = 7, snooze = true }) {
+  return "alarm at {hour}, snooze {if snooze { 'on' } else { 'off' }}"
+}
+print(alarm({ hour = 6 })) -- alarm at 6, snooze on
+```
+
+Only one level deep: `{ a: { b } }` isn't valid. Reach for a second
+statement instead.
 
 ## Functions
 
-Functions use `{ ... }` blocks and `return` as usual.
+Declarations look like Lua's, with braces. `function T.f` and `function T:m`
+work as usual:
 
 ```midnight
-local function greet(name) {
-  print("hello {name}")
+local Lamp = {}
+Lamp.__index = Lamp
+
+function Lamp.new(room) {
+  return setmetatable({ room = room, on = true }, Lamp)
 }
+
+function Lamp:off() {
+  self.on = false
+  print("{self.room} is dark")
+}
+
+Lamp.new('hallway'):off() -- hallway is dark
 ```
 
-### Parameter defaults
+Every call needs parentheses, even with a lone string or table argument.
+
+### Defaults
+
+A parameter can declare what it is when it arrives as `nil`. Any parameter
+can, in any order:
 
 ```midnight
-local function greet(name = 'world') {
-  print("hello {name}")
+local function nap(minutes = 20, where, alarm = true) {
+  return "{minutes}m on the {where}, alarm {alarm}"
 }
-greet()            -- hello world
-greet('midnight')  -- hello midnight
+print(nap(nil, 'couch')) -- 20m on the couch, alarm true
 ```
 
 ### Varargs
 
+`...` is Lua's. Give it a name and the extra arguments arrive as a table:
+
 ```midnight
-local function join(sep, ...strings) {
-  return table.concat(strings, sep)
+local function dreams(who, ...scenes) {
+  return "{who} dreamt {#scenes} things: {table.concat(scenes, ', ')}"
 }
-print(join(', ', 'a', 'b', 'c')) -- a, b, c
+print(dreams('cat', 'mice', 'yarn')) -- cat dreamt 2 things: mice, yarn
 ```
 
 ### Arrow functions
 
-`->` is a normal function; `=>` takes an implicit `self`.
+Anonymous functions are arrows. The body is a block, or a single expression
+that's returned:
 
 ```midnight
-local add = (a, b) -> a + b
-local pick = (t, k) -> t[k]
-
-local obj = {
-  value = 10,
-  get = () => self.value,
+local is_late = (hour) -> hour >= 23 || hour < 5
+local tuck_in = (kid) -> {
+  kid.blanket = true
+  return kid
 }
-print(obj:get()) -- 10
+```
+
+A few details:
+
+- One parameter with no default and no `...` can drop its parentheses:
+  `hour -> hour + 1`, or destructured, `{ name } -> name`.
+- An expression body that's a table, or several values, goes in parentheses,
+  since a bare `{` would start a block: `() -> ({ ok = true })`,
+  `() -> (lo, hi)`.
+- `=>` instead of `->` adds a hidden first parameter, `self`, for methods
+  defined inline:
+
+```midnight
+local clock = {
+  hour = 2,
+  show = () => print("it's {self.hour}am"),
+}
+clock:show() -- it's 2am
+```
+
+### Returning several values
+
+Lua returns several values with commas. Midnight also lets you wrap them in
+parentheses, which reads better once they span lines:
+
+```midnight
+local function bounds(list) {
+  return (
+    math.min(unpack(list)),
+    math.max(unpack(list)),
+  )
+}
 ```
 
 ## Scopes
 
-Declarations are `local` by default; `global` and `module` opt out.
+`local` is Lua's local. Midnight adds two more ways to declare a name.
+
+### global
+
+`global x = ...` writes `_G.x`, and inside that block, `x` means the global
+even if a local `x` exists outside it:
 
 ```midnight
-local x = 1        -- this block only
-global y = 2       -- _G.y
-module z = 3       -- exported by the module
+local hour = 1
+
+do {
+  global hour = 23
+  print(hour)          -- 23
+}
+
+print(hour, _G.hour)   -- 1 23
 ```
+
+### module
+
+`module` marks an export. A file with `module` declarations returns them,
+collected in a table named `_MODULE`:
+
+```midnight
+-- lamp.mn
+module brightness = 0.2
+module function dim(by = 0.1) {
+  brightness = math.max(0, brightness - by)
+}
+```
+
+```midnight
+local lamp = require('lamp')
+lamp.dim()
+
+local { dim } = require('lamp')  -- or import just what you need
+```
+
+`_MODULE` is a plain table you can modify (give it a metatable, add fields by
+hand). Two rules: such a file can't also `return` at the top level, because
+then it's unclear which value is the module, and the word `module` is taken,
+so Lua 5.1's `module()` function isn't callable.
 
 ## Operators
 
-Operators are symbols (as in Rust, Go, JavaScript). Logical operators are
-`&&`, `||`, `!`; inequality is `!=`. Bitwise operators compile to a `bit32`
-library.
-
 | Kind | Operators |
 | --- | --- |
-| Arithmetic | `+` `-` `*` `/` `//` `%` `^` |
-| Relational | `==` `!=` `<` `>` `<=` `>=` |
-| Logical | `&&` `\|\|` `!` |
-| Bitwise | `\|` `~` `&` `<<` `>>` `~x` |
-| Other | `..` (concat) `#` (length) |
+| Arithmetic | `+` `-` `*` `/` `//` `%` `^`, unary `-` |
+| Comparison | `==` `!=` `<` `>` `<=` `>=` |
+| Logic | `&&` `\|\|` `!` |
+| Strings and length | `..` `#` |
+| Bits | `&` `\|` `~` (xor) `<<` `>>`, unary `~` |
 
-### Compound assignment
+`!=` is "not equal" (Lua's `~=` means xor assignment here, see
+[Coming from Lua](/from-lua#not-equal-is)). `&&` and `||` behave exactly like
+Lua's `and` and `or`: they short circuit, and give back one of their
+operands. `//` is floor division.
 
-Any binary operator supports `op=`, and index chains are evaluated once.
+### Bits
+
+The VM is Lua 5.1, which has no bit operators, so these become calls into the
+`bit32` library that Midnight bundles. They work on unsigned 32 bit values,
+which matters for negatives and `~`:
 
 ```midnight
-a += 1
-a *= 5
-t[f()] += 1   -- f() is called once
+print(0xf0 & 0x3c, 0xf0 | 0x0f, 0xf0 ~ 0xff) -- 48 255 15
+print(1 << 4, 256 >> 4)                       -- 16 16
+print(~0)                                     -- 4294967295
 ```
+
+### Assignment operators
+
+Put `=` after any operator that isn't a comparison to update in place:
+`+=`, `-=`, `..=`, `//=`, `&&=`, `|=`, and the rest. Several targets work, as
+with plain assignment:
+
+```midnight
+local sheep, yawns = 0, 0
+sheep, yawns += 10, 1
+sheep *= 2
+
+local status = 'awake'
+status ..= ', barely'
+print(sheep, yawns, status) -- 20 1 awake, barely
+```
+
+Index expressions on the left are evaluated once: in `t[next_id()] += 1`,
+`next_id` runs one time.
 
 ## Control flow
 
+The usual suspects, all with braces:
+
 ```midnight
-do {
-  local scoped = true
-}
-
-if a > 0 {
-  print('positive')
+if hour >= 23 {
+  print('late')
+} elseif hour < 5 {
+  print('very late')
 } else {
-  print('not positive')
+  print('reasonable')
 }
 
-for i = 1, 10 {
-  print(i)
+for countdown = 10, 1, -1 { print(countdown) }
+
+for i, star in ipairs({ 'vega', 'deneb', 'altair' }) {
+  print(i, star)
 }
 
-while not done {
-  step()
-}
+while !asleep { count_sheep() }
 
-repeat
-  step()
-until done
+repeat {
+  count_sheep()
+} until asleep
 
-for i = 1, 10 {
-  if i % 2 == 0 { continue }
-  print(i)
+do {
+  local scratch = 'only in here'
 }
+```
+
+### break, continue, goto
+
+`break` leaves the innermost loop. `continue` jumps to its next turn, in any
+kind of loop:
+
+```midnight
+for hour = 20, 26 {
+  if hour % 2 == 1 { continue }
+  print("check on the baby at {hour % 24}:00")
+}
+```
+
+`goto label` and `::label::` are Lua 5.2's, available everywhere:
+
+```midnight
+for _, line in ipairs(lines) {
+  for _, word in ipairs(line) {
+    if word == 'goodnight' { goto done }
+  }
+}
+::done::
 ```
 
 ## match
 
-Rust-style `match`: patterns compare with `==`, there is no fallthrough, and
-`|` separates alternatives.
+`match` compares one value against a list of arms, top to bottom, and runs
+the first that fits:
 
 ```midnight
-match mode {
-  "movie" => { play() }
-  "show" | "series" => { play() }
-  _ if count > 5 => { skip() }
-  _ => { stop() }
+match signal {
+  'doorbell' => { wake_up() }
+  'rain' | 'wind' => { roll_over() }      -- either one
+  _ if snoring => { nudge() }             -- a guard
+  _ => { keep_sleeping() }                -- everything else
 }
 ```
 
-## if / match expressions
+Under the hood it's an `if` / `elseif` chain on a local copy of the subject:
 
-Where an expression is expected, `if` and `match` have a value — the value of
-the branch taken, even when it's `nil`.
+```lua
+do
+  local subject = signal
+  if subject == "doorbell" then wake_up()
+  elseif subject == "rain" or subject == "wind" then roll_over()
+  elseif snoring then nudge()
+  else keep_sleeping() end
+end
+```
+
+Which leads to the rules:
+
+- The subject is evaluated once. Exactly one arm runs; nothing falls through.
+- A pattern is an expression tested with `==`. A name in a pattern is the
+  value it holds (ex. a constant `ALARM =>`), never a new variable.
+- `|` joins patterns, so a bitwise or inside a pattern needs parentheses:
+  `(FLAG_A | FLAG_B) =>`.
+- `pattern if cond =>` needs both. `_ if cond =>` is only the condition.
+- `_ =>` must be last. An arm after it is a compile error, since it could
+  never run.
+- `break` and `continue` inside an arm affect the surrounding loop.
+- `match` is only special in the right spot, so `s:match(p)`, `t.match`,
+  `local match = 1`, and `match(x)` (a call) keep working. `match (x) {` is
+  a match.
+
+## if and match expressions
+
+Put `if` or `match` where a value goes and it produces one:
 
 ```midnight
-local label = if user.admin { user.title } else { 'member' }
+local lamp = if dark { 'on' } else { 'off' }
 
-local icon = match entry.kind {
-  "dir" => { 'folder' }
-  _ => { 'file' }
+local sound = match animal {
+  'owl' => { 'hoo' }
+  'cricket' | 'frog' => { 'chirp' }
+  _ => { '...' }
 }
 ```
+
+These fix the classic `a and b or c` bug: an if expression gives you the
+chosen branch's value even when that value is `nil` or `false`. With
+`dark && nil || 'off'` you'd get `'off'`, and `midnight lint` flags that
+pattern when it can tell.
+
+- Each branch holds one expression, and only its first value is kept. Use a
+  statement when a branch needs to do more.
+- There has to be a way out: `else` for `if`, `_ =>` for `match`. A missing
+  case can't quietly become `nil`.
+- `elseif`, `|`, and guards all work, the same as in the statements.
+- At the start of a line, `if` and `match` are still statements.
+- On the right of `local x =`, `x =`, or `return` (including an arrow's
+  expression body), they compile to a plain `if` chain. Anywhere else (a
+  function argument, a table field, a markup child) they're wrapped in a
+  function that's called on the spot, which allocates. In a tight loop,
+  assign to a local first.
+- For `match` to be an expression, the subject has to be on the same line,
+  followed by `{` and an arm. `local m = match` is just a variable.
 
 ## Markup
 
-Midnight has JSX-style elements for HTML, rendered by the `midnight.markup`
-runtime (this site is built with them).
+Elements are part of the grammar. Each one compiles to a call,
+`h(tag, props, ...children)`, and the `midnight.markup` runtime turns those
+into HTML:
 
 ```midnight
-local Card = (props) -> <section class="card">
-  <h2>{props.title}</h2>
-  {props.children}
-</section>
+local Star = ({ name, bright }) -> <li class={if bright { 'bright' } else { nil }}>
+  {name}
+</li>
 
-return () -> <html>
-  <body>
-    <Card title="hi"><p>hello</p></Card>
-  </body>
-</html>
+local html = require('midnight.markup').render(<ul>
+  <Star name="sirius" bright/>
+  <Star name="polaris"/>
+</ul>)
+print(html)
 ```
 
-See the [markup docs](https://github.com/taybart/midnight/blob/main/docs/MARKUP.md)
-for components, scoped styles, and interactive pages.
+A `<` only starts an element where a value can begin, so `a < b` is still a
+comparison. The [Markup](/markup) page covers the rest: components, state,
+scoped styles, and pages that update live.
+
+## Reserved words
+
+`break`, `continue`, `do`, `else`, `elseif`, `for`, `function`, `global`,
+`if`, `in`, `local`, `module`, `repeat`, `return`, `until`, `while`, `true`,
+`false`, and `nil`.
+
+`goto` and `match` only act as keywords in their own constructs. Lua's
+`and`, `or`, `not`, `then`, and `end` aren't reserved at all, so they're
+free to use as names. One nice side effect: a half asleep `if not ready`
+fails to compile instead of doing something odd.
