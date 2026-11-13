@@ -650,6 +650,9 @@ pre.code code {
    numbers (the gutter) beside them, and problems' lines marked behind them */
 .pg-editor {
   --gutter: 3rem;
+  /* (the textarea, its highlighted copy, the line numbers and the marks are
+     all this size, or they'd drift apart) */
+  --code-size: 0.875rem;
   position: relative;
   min-height: 0;
   background: var(--code-block-bg);
@@ -672,7 +675,7 @@ pre.code code {
   border: 0;
   border-radius: 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+  font-size: var(--code-size);
   line-height: 1.5;
   white-space: pre;
   tab-size: 2;
@@ -720,7 +723,7 @@ pre.code code {
   /* (the textarea's padding, and room for its scrollbar at the bottom) */
   padding: 1rem 0.6rem 2.5rem 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+  font-size: var(--code-size);
   line-height: 1.5;
   text-align: right;
   color: var(--muted);
@@ -849,6 +852,13 @@ iframe.pg-pane {
 
   .pg-pane {
     min-height: 14rem;
+  }
+}
+
+/* iOS zooms in on a text field w/ a font under 16px when it's tapped */
+@media (pointer: coarse) {
+  .pg-editor {
+    --code-size: 16px;
   }
 }
 
