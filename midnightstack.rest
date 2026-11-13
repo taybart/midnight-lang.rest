@@ -1,0 +1,61 @@
+config {
+  default_language = "midnight"
+}
+
+locals {
+  handler = <<-TMPL
+    local Layout = require('src/layout')
+    local md = require('lib/markdown')
+    return <Layout path="{{.path}}" title="{{.title}}">{md.file('src/docs/{{.file}}')}</Layout>
+  TMPL
+}
+
+
+server {
+  address   = ":12000"
+  directory = "./public"
+
+  # Each page is a src/*.midnight wrapper that renders a src/docs/*.md file
+  # (via lib/markdown). The .md content and the required modules (src/layout,
+  # lib/markdown) are read fresh on every load; the .rest file and the page
+  # wrappers themselves (which `read` bakes in) need a restart.
+  handler "GET" "/{$}" {
+    page = tmpl(locals.handler, {
+      path  = "/",
+      title = "Introduction",
+      file  = "index.md"
+    })
+  }
+
+  handler "GET" "/getting-started" {
+    page = tmpl(locals.handler, {
+      path  = "/getting-started",
+      title = "Getting Started",
+      file  = "getting-started.md"
+    })
+  }
+
+  handler "GET" "/reference" {
+    page = tmpl(locals.handler, {
+      path  = "/reference",
+      title = "Reference",
+      file  = "reference.md"
+    })
+  }
+
+  handler "GET" "/markup" {
+    page = tmpl(locals.handler, {
+      path  = "/markup",
+      title = "Markup",
+      file  = "markup.md"
+    })
+  }
+
+  handler "GET" "/tools" {
+    page = tmpl(locals.handler, {
+      path  = "/tools",
+      title = "Tools",
+      file  = "tools.md"
+    })
+  }
+}

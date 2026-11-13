@@ -1,0 +1,89 @@
+-- Shared layout for the midnight docs: the <html> shell, the sidebar nav, the
+-- theme switch, and the favicon. Each page `require`s it and returns
+--
+--   return <Layout path="/" title="Reference"> ... </Layout>
+--
+-- The content itself is markdown, rendered by the `lib/markdown` module.
+-- The theme is client side: a tiny inline script reads/writes localStorage and
+-- sets `data-theme` on <html>, so the choice survives navigation.
+local { map, cx } = require('midnight.markup')
+
+local pages = {
+  { path = '/', title = 'Introduction' },
+  { path = '/getting-started', title = 'Getting Started' },
+  { path = '/reference', title = 'Reference' },
+  { path = '/markup', title = 'Markup' },
+  { path = '/tools', title = 'Tools' },
+}
+
+local Nav = ({ path }) -> <nav class="nav" id="nav">
+  <ul>
+    {map(pages, (p) -> <li>
+      <a href={p.path} class={cx({ active = p.path == path })}>{p.title}</a>
+    </li>)}
+  </ul>
+</nav>
+
+return ({ title, path, children }) -> <html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>{"Midnight · {title}"}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+    <link rel="stylesheet" href="/site.css"/>
+    <script>
+      {
+        try {
+          const t = localStorage.getItem('theme') || 'dark'
+          document.documentElement.setAttribute('data-theme', t)
+        } catch (e) {}
+      }
+    </script>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="/">midnight</a>
+        <button class="menu-toggle" id="menu-toggle" title="menu" aria-label="toggle menu" aria-expanded="false">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+        <Nav path={path}/>
+        <button class="theme-toggle" id="theme-toggle" title="toggle theme">
+          <span class="icon icon-sun" aria-hidden="true"></span>
+          <span class="icon icon-moon" aria-hidden="true"></span>
+          <span id="theme-label">light</span>
+        </button>
+      </aside>
+      <main class="content">{children}</main>
+    </div>
+    <script type="module">
+      import {dom, style, ls} from '/js/corvid.bundle.js'
+      {
+        // listen to system theme if nothing set
+        if (!ls.get('theme')) style.handleThemeSwitch()
+        const next = () => style.theme() === 'dark' ? 'light' : 'dark'
+
+        const btn = new dom.el('#theme-toggle');
+        const label = new dom.el({
+          query: '#theme-label', 
+          content: next(),
+        })
+        btn.on('click',  () => {
+          const nt = next()
+          style.theme(nt)
+          label.content(nt)
+          try { ls.set('theme', nt) } catch (e) {}
+        })
+
+        const menu = new dom.el('#menu-toggle');
+        const sidebar = new dom.el('#sidebar');
+        menu.on('click', () => {
+          sidebar.toggleClass('open')
+          menu.attr('aria-expanded', String(sidebar.hasClass('open')))
+        })
+      }
+    </script>
+  </body>
+</html>
