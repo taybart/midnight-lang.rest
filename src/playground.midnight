@@ -3,6 +3,10 @@
 --
 -- The editor is a transparent <textarea> laid over a highlighted copy of its
 -- text, colored by the compiler's own lexer (midnightTokens in the wasm).
+--
+-- playground.js imports the other modules in public/play. They're preloaded
+-- (modulepreload) so the browser fetches them all at once, not import by
+-- import.
 
 return () -> <div class="playground">
   <div class="pg-toolbar">
@@ -48,5 +52,13 @@ return () -> <div class="playground">
     onclick) are live: clicks run your handlers here, the way rest runs
     them on a server.
   </p>
+  <link rel="modulepreload" href="/js/corvid.bundle.js"/>
+  <link rel="modulepreload" href="/play/editor.js"/>
+  <link rel="modulepreload" href="/play/highlight.js"/>
+  <link rel="modulepreload" href="/play/runner.js"/>
+  <link rel="modulepreload" href="/play/page.js"/>
+  <link rel="modulepreload" href="/play/wasm.js"/>
+  <link rel="modulepreload" href="/play/examples.js"/>
+  <link rel="modulepreload" href="/play/share.js"/>
   <script type="module" src="/play/playground.js"></script>
 </div>

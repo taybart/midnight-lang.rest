@@ -12,8 +12,7 @@ const fromB64url = (str) => {
   return Uint8Array.from(s, (c) => c.charCodeAt(0))
 }
 
-const pipe = (data, transform) =>
-  new Response(new Blob([data]).stream().pipeThrough(transform))
+const pipe = (data, transform) => new Response(new Blob([data]).stream().pipeThrough(transform))
 
 export async function encode(src) {
   const res = pipe(src, new CompressionStream('deflate-raw'))
