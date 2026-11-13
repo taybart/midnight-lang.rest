@@ -1,0 +1,14 @@
+-- match and if expressions
+local function mood(hour) {
+  return match hour {
+    22 | 23 => { 'winding down' }
+    0 | 1 | 2 | 3 | 4 => { 'should be asleep' }
+    _ if hour < 12 => { 'morning' }
+    _ => { 'awake' }
+  }
+}
+
+for _, hour in ipairs({ 23, 2, 9, 15 }) {
+  local suffix = if hour < 12 { 'am' } else { 'pm' }
+  print("{(hour - 1) % 12 + 1}{suffix}: {mood(hour)}")
+}

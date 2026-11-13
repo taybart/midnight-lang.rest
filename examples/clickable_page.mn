@@ -1,0 +1,39 @@
+-- A clickable page
+local { state, css } = require('midnight.markup')
+
+local s = css({
+  sky = {
+    font_family = 'system-ui, sans-serif',
+    background = '#0b0f1d',
+    color = '#e8ebf4',
+    padding = '2rem',
+    min_height = '100vh',
+    margin = 0,
+  },
+  button = { font_size = '1rem', padding = '.5rem 1rem', cursor = 'pointer' },
+})
+
+-- each component keeps its own state between clicks
+local Sheep = ({ owl = 'night owl' }) -> {
+  local st = state({ count = 0 })
+  local mood = match st.count {
+    0 => { 'wide awake' }
+    1 | 2 | 3 => { 'getting drowsy' }
+    _ => { 'fast asleep' }
+  }
+  return <section>
+    <h2>goodnight, {owl}</h2>
+    <p>{st.count} sheep so far, {mood}</p>
+    <button class={s.button} onclick={() -> {
+      st.count += 1
+      print("{owl} counted sheep #{st.count}")
+    }}>count another</button>
+  </section>
+}
+
+return <html>
+  <body class={s.sky}>
+    <Sheep/>
+    <Sheep owl="olive"/>
+  </body>
+</html>

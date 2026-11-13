@@ -50,3 +50,55 @@ export const highlight = (src) => {
   frag.append(' ')
   return frag
 }
+
+// Lua (the Lua tab: what the code compiles to). The compiler's lexer is
+// midnight's, so this is a small one of its own.
+
+// biome-ignore format: a table
+const LUA_KEYWORDS = new Set([
+  'and', 'break', 'do', 'else', 'elseif', 'end', 'for', 'function', 'goto', 'if',
+  'in', 'local', 'not', 'or', 'repeat', 'return', 'then', 'until', 'while',
+])
+const LUA_CONSTANTS = new Set(['true', 'false', 'nil'])
+
+// one token per match, by its group: comment, string, number, name, operator,
+// punctuation (anything else, ex. whitespace, is between matches)
+const LUA_TOKEN = new RegExp(
+  [
+    /(--\[(=*)\[[\s\S]*?\]\2\]|--[^\n]*)/, // 1: comment (2: its =s)
+    /(\[(=*)\[[\s\S]*?\]\4\]|"(?:\\[\s\S]|[^"\\\n])*"?|'(?:\\[\s\S]|[^'\\\n])*'?)/, // 3: string (4)
+    /(0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/, // 5: number
+    /([A-Za-z_]\w*)/, // 6: name
+    /(==|~=|<=|>=|\.\.\.?|::|[-+*/%^#<>=])/, // 7: operator
+    /([()[\]{};:,.])/, // 8: punctuation
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'g',
+)
+
+// highlightLua returns Lua source as highlighted nodes
+export const highlightLua = (src) => {
+  const frag = document.createDocumentFragment()
+  let at = 0
+  for (const m of src.matchAll(LUA_TOKEN)) {
+    if (m.index > at) frag.append(src.slice(at, m.index))
+    const [text, comment, , string, , number, name, operator] = m
+    let cls = 'tok-punct'
+    if (comment) cls = 'tok-comment'
+    else if (string) cls = 'tok-string'
+    else if (number) cls = 'tok-number'
+    else if (operator) cls = 'tok-operator'
+    else if (name) {
+      if (LUA_KEYWORDS.has(name)) cls = 'tok-keyword'
+      else if (LUA_CONSTANTS.has(name)) cls = 'tok-const'
+      else if (BUILTIN.has(name)) cls = 'tok-builtin'
+      else if (/^\s*[(]/.test(src.slice(m.index + text.length))) cls = 'tok-function'
+      else cls = null
+    }
+    frag.append(cls ? span(cls, text) : text)
+    at = m.index + text.length
+  }
+  frag.append(src.slice(at))
+  return frag
+}

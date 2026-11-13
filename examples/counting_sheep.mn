@@ -1,0 +1,13 @@
+-- Counting sheep
+local function count_sheep(name = 'night owl', ...sheep) {
+  for i, s in ipairs(sheep) {
+    print("{name} counts sheep #{i}: {s}")
+  }
+  return match #sheep {
+    0 => { 'still awake' }
+    1 | 2 => { 'drowsy' }
+    _ => { 'fast asleep' }
+  }
+}
+
+print(count_sheep(nil, 'dolly', 'shaun', 'timmy'))

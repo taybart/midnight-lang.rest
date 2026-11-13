@@ -1,0 +1,6 @@
+-- A loop that never ends
+-- runs are stopped after 5 seconds
+local sheep = 0
+while true {
+  sheep += 1
+}

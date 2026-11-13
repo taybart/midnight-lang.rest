@@ -1,0 +1,11 @@
+-- Tables and destructuring
+local sky = { moon = 'waning', 'orion', 'lyra' }
+
+local { moon: phase, stars = 0 } = sky
+local [brightest] = sky
+print(phase, stars, brightest)
+
+local function alarm({ hour = 7, snooze = true }) {
+  return "alarm at {hour}, snooze {if snooze { 'on' } else { 'off' }}"
+}
+print(alarm({ hour = 6 }))

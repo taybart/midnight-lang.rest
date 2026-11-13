@@ -1,0 +1,26 @@
+-- A page (markup)
+local { css, map } = require('midnight.markup')
+
+local s = css({
+  sky = {
+    font_family = 'system-ui, sans-serif',
+    background = '#0b0f1d',
+    color = '#e8ebf4',
+    padding = '2rem',
+    min_height = '100vh',
+    margin = 0,
+  },
+  star = { color = '#ffcb6b' },
+})
+
+local stars = { 'sirius', 'canopus', 'arcturus', 'vega' }
+
+-- return markup and it shows up on the Page tab
+return <html>
+  <body class={s.sky}>
+    <h1>tonight's sky</h1>
+    <ul>
+      {map(stars, (name, i) -> <li>{i}. <span class={s.star}>{name}</span></li>)}
+    </ul>
+  </body>
+</html>

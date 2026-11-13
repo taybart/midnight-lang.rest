@@ -1,0 +1,7 @@
+-- Interpolation formats
+local moon = 0.734
+print("the moon is {moon * 100:%.0f}% full")
+
+for hour = 21, 26 {
+  print("{hour % 24:%02d}:00  {string.rep('z', hour - 20)}")
+}
