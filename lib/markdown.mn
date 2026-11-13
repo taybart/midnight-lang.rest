@@ -325,12 +325,15 @@ local function fencedCode(lines, i) {
   if lang != '' { props['data-lang'] = lang }
   local children = highlight.highlight(lang, code)
   if children == nil { children = code }
-  if !flags.copy {
+  if !flags.copy && !flags.try {
     return h('pre', props, h('code', nil, children)), i + 1
   }
+  -- (`try` opens the block in the playground, see layout.midnight)
   return h('div', { class = 'code-block' },
     h('pre', props, h('code', nil, children)),
-    h('button', { class = 'copy-btn', type = 'button', title = 'copy code' }, 'Copy')), i + 1
+    h('div', { class = 'code-actions' },
+      flags.try && h('button', { class = 'try-btn', type = 'button', title = 'open in the playground' }, 'Try it'),
+      flags.copy && h('button', { class = 'copy-btn', type = 'button', title = 'copy code' }, 'Copy'))), i + 1
 }
 
 local function heading(lines, i, ctx) {

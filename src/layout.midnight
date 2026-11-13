@@ -15,6 +15,7 @@ local pages = {
   { path = '/from-lua', title = 'Coming from Lua' },
   { path = '/markup', title = 'Markup' },
   { path = '/tools', title = 'Tools' },
+  { path = '/playground', title = 'Playground' },
 }
 
 local Nav = ({ path }) -> {
@@ -51,17 +52,60 @@ local Nav = ({ path }) -> {
   </>
 }
 
+-- Tonight's moon, drawn from how far we are into the current lunar month
+-- (the page cache keeps it for an hour, which is plenty for the moon).
+local SYNODIC = 29.530588853 -- days from one new moon to the next
+local KNOWN_NEW_MOON = 947182440 -- 2000-01-06 18:14 UTC
+local PHASES = {
+  'new moon', 'waxing crescent', 'first quarter', 'waxing gibbous',
+  'full moon', 'waning gibbous', 'last quarter', 'waning crescent',
+}
+
+-- moonPhase returns how far into the month (0 new, 0.5 full), how much of
+-- the face is lit (0 to 1), and the phase's name
+local function moonPhase(now = os.time()) {
+  local frac = ((now - KNOWN_NEW_MOON) / 86400 % SYNODIC) / SYNODIC
+  return (
+    frac,
+    (1 - math.cos(2 * math.pi * frac)) / 2,
+    PHASES[math.floor(frac * 8 + 0.5) % 8 + 1],
+  )
+}
+
+-- The lit part is the limb (a half circle on the sun's side: the right while
+-- waxing, the left while waning) closed by the terminator, a half ellipse
+-- that bulges toward the lit side for a crescent and away from it for a
+-- gibbous moon.
+local Moon = () -> {
+  local frac, lit, name = moonPhase()
+  local c, r = 12, 10
+  local rx = r * math.abs(math.cos(2 * math.pi * frac))
+  local waxing = frac < 0.5
+  local crescent = frac < 0.25 || frac > 0.75
+  local limb = if waxing { 1 } else { 0 }
+  local terminator = if waxing == crescent { 0 } else { 1 }
+  local label = "{name}, {lit * 100:%.0f}% lit"
+  return <svg class="moon" viewBox="0 0 24 24" width="22" height="22" role="img" aria-label={label}>
+    <title>{"tonight: {label}"}</title>
+    <circle class="moon-dark" cx={c} cy={c} r={r}/>
+    <path
+      class="moon-lit"
+      d={"M {c} {c - r} A {r} {r} 0 0 {limb} {c} {c + r} A {rx:%.3f} {r} 0 0 {terminator} {c} {c - r} Z"}
+    />
+  </svg>
+}
+
 local Sidebar = ({ path }) -> <aside class="sidebar" id="sidebar">
-  <a class="brand" href="/">midnight</a>
+  <a class="brand" href="/"><Moon/>midnight</a>
   <Nav path={path}/>
   <button class="theme-toggle" id="theme-toggle" title="toggle theme">
     <span class="icon icon-sun" aria-hidden="true"></span>
     <span class="icon icon-moon" aria-hidden="true"></span>
-    <span id="theme-label">light</span>
+    <span id="theme-label">dawn</span>
   </button>
 </aside>
 
-return ({ title, path, children }) -> <html>
+return ({ title, path, children, wide }) -> <html>
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -80,7 +124,7 @@ return ({ title, path, children }) -> <html>
   <body>
     <div class="layout">
       <Sidebar path={path} />
-      <main class="content">{children}</main>
+      <main class={cx("content", { wide = wide })}>{children}</main>
     </div>
     <script type="module">
       import {dom, style, ls} from '/js/corvid.bundle.js'
@@ -88,16 +132,18 @@ return ({ title, path, children }) -> <html>
         // listen to system theme if nothing set
         if (!ls.get('theme')) style.handleThemeSwitch()
         const next = () => style.theme() === 'dark' ? 'light' : 'dark'
+        // the themes are dark / light, but the button speaks in hours
+        const names = { dark: 'midnight', light: 'dawn' }
 
         const btn = new dom.el('#theme-toggle');
         const label = new dom.el({
-          query: '#theme-label', 
-          content: next(),
+          query: '#theme-label',
+          content: names[next()],
         })
         btn.on('click',  () => {
           const nt = next()
           style.theme(nt)
-          label.content(nt)
+          label.content(names[next()])
           try { ls.set('theme', nt) } catch (e) {}
         })
 
@@ -130,6 +176,14 @@ return ({ title, path, children }) -> <html>
           document.body.removeChild(ta)
           return Promise.resolve()
         }
+        // "Try it" buttons (```midnight try) open the block in the playground
+        document.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.try-btn')
+          if (!btn) return
+          const code = btn.closest('.code-block').querySelector('code')
+          const { playgroundUrl } = await import('/play/share.js')
+          location.href = await playgroundUrl(code ? code.textContent : '')
+        })
         document.addEventListener('click', (e) => {
           const btn = e.target.closest('.copy-btn')
           if (!btn) return

@@ -8,7 +8,7 @@ got around to (parameter defaults, destructuring, string interpolation,
 `match`, and HTML-style markup). It runs inside Go programs, or compiles to
 plain Lua when it's time to ship.
 
-```midnight
+```midnight try
 local function count_sheep(name = 'night owl', ...sheep) {
   for i, s in ipairs(sheep) {
     print("{name} counts sheep #{i}: {s}")
@@ -48,7 +48,7 @@ while stars < 3 && !dawn {
 Any parameter can have a default, varargs can have a name, and anonymous
 functions are arrows.
 
-```midnight
+```midnight try
 local function dream(about = 'electric sheep', ...details) {
   return "dreaming of {about} ({#details} details)"
 }
@@ -62,7 +62,7 @@ print("y{yawn(5)}wn") -- yaaaaawn
 Double quoted and block strings interpolate `{expressions}`, and
 `{expr:%spec}` formats them with `string.format`.
 
-```midnight
+```midnight try
 local hours = 7.5
 print("slept {hours:%.1f} hours") -- slept 7.5 hours
 print('single quotes stay {literal}') -- single quotes stay {literal}

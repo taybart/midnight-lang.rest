@@ -1,0 +1,44 @@
+-- The playground: midnight compiled to wasm, running in the visitor's browser
+-- (public/play/playground.js does the work; this is just the furniture).
+--
+-- The editor is a transparent <textarea> laid over a highlighted copy of its
+-- text, colored by the compiler's own lexer (midnightTokens in the wasm).
+
+return () -> <div class="playground">
+  <div class="pg-toolbar">
+    <button id="pg-run" class="pg-run" type="button" title="run (ctrl / cmd + enter)" disabled>Run</button>
+    <select id="pg-examples" aria-label="examples"></select>
+    <button id="pg-share" type="button" title="copy a link to this code">Share</button>
+    <span id="pg-status" class="pg-status">waking up...</span>
+  </div>
+  <div class="pg-panes">
+    <div class="pg-editor">
+      <pre class="pg-highlight" aria-hidden="true"><code id="pg-highlight"></code></pre>
+      <textarea
+        id="pg-input"
+        class="pg-input"
+        aria-label="midnight code"
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+      ></textarea>
+    </div>
+    <div class="pg-output">
+      <div class="pg-tabs" role="tablist">
+        <button type="button" data-tab="output" class="active">Output</button>
+        <button type="button" data-tab="lua">Lua</button>
+        <button type="button" data-tab="page" disabled title="return markup to see it rendered">Page</button>
+      </div>
+      <pre id="pg-output" class="code pg-pane" data-pane="output"></pre>
+      <pre id="pg-lua" class="code pg-pane" data-pane="lua" hidden></pre>
+      <iframe id="pg-page" class="pg-pane" data-pane="page" sandbox="" title="rendered page" hidden></iframe>
+    </div>
+  </div>
+  <p class="pg-about">
+    Everything runs in your browser: the compiler and VM are compiled to
+    WebAssembly, and nothing you type is sent anywhere until you share it.
+    Return markup to see it on the Page tab. Pages render as static HTML here;
+    serve them with rest to click around.
+  </p>
+  <script type="module" src="/play/playground.js"></script>
+</div>

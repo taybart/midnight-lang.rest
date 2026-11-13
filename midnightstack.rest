@@ -59,6 +59,15 @@ server {
     })
   }
 
+  handler "GET" "/playground" {
+    cache = locals.cache_ttl
+    page  = <<-MIDNIGHT
+      local Layout = require('src/layout')
+      local Playground = require('src/playground')
+      return <Layout path="/playground" title="Playground" wide><Playground/></Layout>
+    MIDNIGHT
+  }
+
   handler "GET" "/tools" {
     cache = locals.cache_ttl
     page = tmpl(locals.handler, {

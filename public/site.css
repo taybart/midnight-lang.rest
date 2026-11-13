@@ -34,6 +34,11 @@
   --tok-interp: #ffcb6b;
   --tok-tag: #f07178;
   --tok-attr: #ffcb6b;
+
+  /* tonight's moon (see Moon in layout.midnight) */
+  --moon-lit: #f6f1d8;
+  --moon-dark: #1b2340;
+  --moon-glow: rgba(246, 241, 216, 0.45);
 }
 
 [data-theme="light"] {
@@ -54,19 +59,12 @@
   --table-stripe: rgba(0, 0, 0, 0.025);
   --star-opacity: 0;
 
-  /* syntax highlighting */
-  --tok-keyword: #8250df;
-  --tok-function: #0550ae;
-  --tok-builtin: #0969da;
-  --tok-string: #0a7143;
-  --tok-number: #b35900;
-  --tok-const: #b35900;
-  --tok-comment: #8a8f9c;
-  --tok-operator: #57606a;
-  --tok-punct: #6e7781;
-  --tok-interp: #9a6700;
-  --tok-tag: #b31d28;
-  --tok-attr: #6639ba;
+  /* (code blocks stay dark at dawn, so they keep the night's token colors) */
+
+  /* a moon that's still up at dawn: paler, warmer */
+  --moon-lit: #eab04a;
+  --moon-dark: #c8cddc;
+  --moon-glow: rgba(240, 196, 108, 0.4);
 }
 
 * {
@@ -173,9 +171,68 @@ body::after {
   to { opacity: 0.9; }
 }
 
-[data-theme="light"] body::after {
+[data-theme="light"] body::after,
+:root[data-theme="light"]::after {
   animation: none;
   opacity: 0;
+}
+
+/* a second handful of stars, twinkling out of step w/ the first, so the sky
+   shimmers instead of dimming all at once (the root's ::after, since body's
+   pseudo-elements are taken) */
+:root::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--star-opacity);
+  box-shadow:
+    603px 859px #fff,
+    44px 616px rgba(255, 255, 255, 0.6),
+    877px 398px rgba(255, 255, 255, 0.6),
+    276px 753px #fff,
+    557px 465px #fff,
+    462px 645px 0 0.5px #dfe6ff,
+    60px 118px #fff,
+    1464px 520px 0 0.5px #dfe6ff,
+    50px 534px 0 0.5px #dfe6ff,
+    745px 799px #fff,
+    431px 811px #fff,
+    1216px 387px #fff,
+    1281px 231px rgba(255, 255, 255, 0.6),
+    1168px 788px rgba(255, 255, 255, 0.6),
+    1181px 298px rgba(255, 255, 255, 0.6),
+    1183px 97px 0 0.5px #dfe6ff,
+    373px 745px 0 0.5px #dfe6ff,
+    1219px 820px 0 0.5px #dfe6ff,
+    1393px 667px #fff,
+    382px 828px #fff,
+    1102px 341px #fff,
+    1202px 127px #fff,
+    211px 446px #fff,
+    1173px 292px rgba(255, 255, 255, 0.6),
+    1218px 348px #fff,
+    767px 305px rgba(255, 255, 255, 0.6);
+  animation: twinkle 3.7s ease-in-out -1.8s infinite alternate-reverse;
+}
+
+/* dawn: sunrise warming the bottom of the sky */
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(1100px 700px at 85% -10%, var(--bg-glow), transparent 60%),
+    radial-gradient(1400px 420px at 30% 115%, rgba(255, 186, 140, 0.22), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  :root::after {
+    animation: none;
+  }
 }
 
 .layout {
@@ -202,7 +259,9 @@ body::after {
 }
 
 .brand {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -210,6 +269,19 @@ body::after {
   text-decoration: none;
   margin-bottom: 1.25rem;
   padding: 0 0.5rem;
+}
+
+.moon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--moon-glow));
+}
+
+.moon-lit {
+  fill: var(--moon-lit);
+}
+
+.moon-dark {
+  fill: var(--moon-dark);
 }
 
 .nav ul {
@@ -424,10 +496,16 @@ pre.code code {
   margin: 0;
 }
 
-.copy-btn {
+.code-actions {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.copy-btn,
+.try-btn {
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   line-height: 1.4;
@@ -439,23 +517,218 @@ pre.code code {
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.copy-btn:hover {
+.copy-btn:hover,
+.try-btn:hover {
   color: var(--text);
   border-color: var(--accent);
 }
 
-pre.code .tok-keyword  { color: var(--tok-keyword); }
-pre.code .tok-function { color: var(--tok-function); }
-pre.code .tok-builtin  { color: var(--tok-builtin); }
-pre.code .tok-string   { color: var(--tok-string); }
-pre.code .tok-number   { color: var(--tok-number); }
-pre.code .tok-const    { color: var(--tok-const); }
-pre.code .tok-comment  { color: var(--tok-comment); font-style: italic; }
-pre.code .tok-operator { color: var(--tok-operator); }
-pre.code .tok-punct    { color: var(--tok-punct); }
-pre.code .tok-interp   { color: var(--tok-interp); font-weight: 600; }
-pre.code .tok-tag      { color: var(--tok-tag); }
-pre.code .tok-attr     { color: var(--tok-attr); }
+:is(pre.code, .pg-highlight) .tok-keyword { color: var(--tok-keyword); }
+:is(pre.code, .pg-highlight) .tok-function { color: var(--tok-function); }
+:is(pre.code, .pg-highlight) .tok-builtin { color: var(--tok-builtin); }
+:is(pre.code, .pg-highlight) .tok-string { color: var(--tok-string); }
+:is(pre.code, .pg-highlight) .tok-number { color: var(--tok-number); }
+:is(pre.code, .pg-highlight) .tok-const { color: var(--tok-const); }
+:is(pre.code, .pg-highlight) .tok-comment { color: var(--tok-comment); font-style: italic; }
+:is(pre.code, .pg-highlight) .tok-operator { color: var(--tok-operator); }
+:is(pre.code, .pg-highlight) .tok-punct { color: var(--tok-punct); }
+:is(pre.code, .pg-highlight) .tok-interp { color: var(--tok-interp); font-weight: 600; }
+:is(pre.code, .pg-highlight) .tok-tag { color: var(--tok-tag); }
+:is(pre.code, .pg-highlight) .tok-attr { color: var(--tok-attr); }
+
+/* Playground (src/playground.midnight, public/play) ------------------------ */
+
+.content.wide {
+  max-width: none;
+}
+
+.playground {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pg-toolbar button,
+.pg-toolbar select,
+.pg-tabs button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.pg-toolbar button:hover,
+.pg-tabs button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.pg-toolbar .pg-run {
+  font-weight: 600;
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+
+.pg-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.pg-status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.pg-status.err {
+  color: var(--tok-tag);
+}
+
+.pg-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  height: max(24rem, calc(100vh - 14rem));
+}
+
+/* the editor: a transparent textarea over its highlighted copy */
+.pg-editor {
+  position: relative;
+  background: var(--code-block-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.pg-editor:focus-within {
+  border-color: var(--accent);
+}
+
+.pg-highlight,
+.pg-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 0;
+  border-radius: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+  overflow: auto;
+}
+
+.pg-highlight {
+  pointer-events: none;
+  overflow: hidden;
+  background: none;
+}
+
+.pg-highlight code {
+  font: inherit;
+  padding: 0;
+  background: none;
+}
+
+.pg-input {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--code-block-text);
+}
+
+.pg-input::selection {
+  background: rgba(185, 196, 255, 0.25);
+}
+
+.pg-output {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pg-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.pg-tabs button.active {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.pg-tabs button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pg-pane {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+}
+
+pre.code.pg-pane {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.pg-pane .pg-err {
+  color: var(--tok-tag);
+}
+
+.pg-pane .pg-note {
+  color: var(--muted);
+  font-style: italic;
+}
+
+iframe.pg-pane {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.pg-about {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .pg-panes {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .pg-editor {
+    height: 22rem;
+  }
+
+  .pg-pane {
+    min-height: 14rem;
+  }
+}
 
 /* Tables ----------------------------------------------------------------- */
 

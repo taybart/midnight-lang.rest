@@ -28,7 +28,7 @@ trip you up, usually right when you're too tired to notice.
 This is the one you'll type wrong the most. Every operator in Midnight has an
 `op=` form, and `~` is xor, so `~=` already means "xor this into that":
 
-```midnight
+```midnight try
 local flags = 0xff
 flags ~= 0x0f
 print(flags)  -- 240

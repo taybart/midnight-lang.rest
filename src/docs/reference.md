@@ -40,7 +40,7 @@ diffs quiet when the list grows a line.
 `nil`, `true`, `false`, numbers, strings, tables, and functions, as in Lua.
 Numbers are doubles, written any way Lua 5.4 allows, plus `0b` binary:
 
-```midnight
+```midnight try
 print(23, 0.5, 2e3)    -- 23 0.5 2000
 print(0x17, 0b10111)   -- 23 23
 print(0x1.8p1)         -- 3 (a hex float: 1.5 * 2^1)
@@ -51,7 +51,7 @@ print(0x1.8p1)         -- 3 (a hex float: 1.5 * 2^1)
 Quotes, escapes, and `[[block strings]]` work like Lua's. What's new is that
 double quoted and block strings fill in `{expressions}`:
 
-```midnight
+```midnight try
 local hour, owl = 3, 'olive'
 
 print("{owl} is up at {hour}am")    -- olive is up at 3am
@@ -67,7 +67,7 @@ closing `}` too is allowed, not required). Values go through `tostring`, so a
 
 Add `:%spec` to an interpolation to run it through `string.format`:
 
-```midnight
+```midnight try
 local moon = 0.734
 print("moon {moon * 100:%.0f}% full")  -- moon 73% full
 print("color #{0x1d2b53:%06x}")        -- color #1d2b53
@@ -80,7 +80,7 @@ which is how `{owl:upper()}` stays a method call.
 A block string interpolates too, and skips a newline right after `[[`, as in
 Lua:
 
-```midnight
+```midnight try
 local bedtime = 23
 io.write([[
   lights out at {bedtime}:00
@@ -95,7 +95,7 @@ parentheses: `'%02d:%02d':format(h, m)`.
 
 One structure for everything, as in Lua:
 
-```midnight
+```midnight try
 local sky = { moon = 'waning', 'orion', 'lyra' }
 sky.clouds = false
 print(sky.moon, sky[2], #sky) -- waning lyra 2
@@ -125,7 +125,7 @@ local { fog: visibility = 'clear' } = sky   -- sky.fog, or 'clear'
 Parameters destructure the same way, which is handy for options tables and
 component props:
 
-```midnight
+```midnight try
 local function alarm({ hour = 7, snooze = true }) {
   return "alarm at {hour}, snooze {if snooze { 'on' } else { 'off' }}"
 }
@@ -140,7 +140,7 @@ statement instead.
 Declarations look like Lua's, with braces. `function T.f` and `function T:m`
 work as usual:
 
-```midnight
+```midnight try
 local Lamp = {}
 Lamp.__index = Lamp
 
@@ -163,7 +163,7 @@ Every call needs parentheses, even with a lone string or table argument.
 A parameter can declare what it is when it arrives as `nil`. Any parameter
 can, in any order:
 
-```midnight
+```midnight try
 local function nap(minutes = 20, where, alarm = true) {
   return "{minutes}m on the {where}, alarm {alarm}"
 }
@@ -174,7 +174,7 @@ print(nap(nil, 'couch')) -- 20m on the couch, alarm true
 
 `...` is Lua's. Give it a name and the extra arguments arrive as a table:
 
-```midnight
+```midnight try
 local function dreams(who, ...scenes) {
   return "{who} dreamt {#scenes} things: {table.concat(scenes, ', ')}"
 }
@@ -204,7 +204,7 @@ A few details:
 - `=>` instead of `->` adds a hidden first parameter, `self`, for methods
   defined inline:
 
-```midnight
+```midnight try
 local clock = {
   hour = 2,
   show = () => print("it's {self.hour}am"),
@@ -235,7 +235,7 @@ local function bounds(list) {
 `global x = ...` writes `_G.x`, and inside that block, `x` means the global
 even if a local `x` exists outside it:
 
-```midnight
+```midnight try
 local hour = 1
 
 do {
@@ -292,7 +292,7 @@ The VM is Lua 5.1, which has no bit operators, so these become calls into the
 `bit32` library that Midnight bundles. They work on unsigned 32 bit values,
 which matters for negatives and `~`:
 
-```midnight
+```midnight try
 print(0xf0 & 0x3c, 0xf0 | 0x0f, 0xf0 ~ 0xff) -- 48 255 15
 print(1 << 4, 256 >> 4)                       -- 16 16
 print(~0)                                     -- 4294967295
@@ -304,7 +304,7 @@ Put `=` after any operator that isn't a comparison to update in place:
 `+=`, `-=`, `..=`, `//=`, `&&=`, `|=`, and the rest. Several targets work, as
 with plain assignment:
 
-```midnight
+```midnight try
 local sheep, yawns = 0, 0
 sheep, yawns += 10, 1
 sheep *= 2
@@ -352,7 +352,7 @@ do {
 `break` leaves the innermost loop. `continue` jumps to its next turn, in any
 kind of loop:
 
-```midnight
+```midnight try
 for hour = 20, 26 {
   if hour % 2 == 1 { continue }
   print("check on the baby at {hour % 24}:00")
@@ -450,7 +450,7 @@ Elements are part of the grammar. Each one compiles to a call,
 `h(tag, props, ...children)`, and the `midnight.markup` runtime turns those
 into HTML:
 
-```midnight
+```midnight try
 local Star = ({ name, bright }) -> <li class={if bright { 'bright' } else { nil }}>
   {name}
 </li>

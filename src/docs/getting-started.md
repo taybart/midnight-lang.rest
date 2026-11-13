@@ -29,7 +29,7 @@ midnight                     # the REPL
 
 A first script, `hello.mn`:
 
-```midnight
+```midnight try
 local function goodnight(who = 'moon') {
   print("goodnight, {who}")
 }
