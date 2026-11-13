@@ -1,29 +1,22 @@
 -- highlight.midnight — a tiny syntax highlighter for fenced code blocks.
 --
--- It tokenizes midnight / Lua (plus a small `sh` and `json` subset) into
--- <span class="tok-*"> elements. Token colors are pure CSS variables
--- (--tok-*), so themes restyle every color in one place — see site.css.
+-- midnight code is split by the compiler's own lexer (`midnight.syntax`), so
+-- it's colored the way the compiler reads it, markup included. `sh` and
+-- `json` have small scanners here. Spans are <span class="tok-*">, and token
+-- colors are pure CSS variables (--tok-*), so themes restyle every color in
+-- one place — see site.css.
 --
 -- `highlight(lang, code)` returns a list of children (strings + spans) for the
 -- markdown renderer to pass to `h('code', nil, ...)`; strings are escaped by
--- markup as usual. Unsupported languages return nil, and the caller falls back
--- to plain escaped text.
+-- markup as usual. Unsupported (or missing) languages return nil, and the
+-- caller falls back to plain escaped text.
 
 local { h } = require('midnight.markup')
+local syntax = require('midnight.syntax')
 
 local M = {}
 
 -- token sets -------------------------------------------------------------
-
-local KW = {
-  ['and']=1, ['break']=1, ['continue']=1, ['do']=1, ['else']=1,
-  ['elseif']=1, ['end']=1, ['for']=1, ['function']=1, ['goto']=1,
-  ['if']=1, ['in']=1, ['local']=1, ['not']=1, ['or']=1, ['repeat']=1,
-  ['return']=1, ['then']=1, ['until']=1, ['while']=1,
-  ['match']=1, ['case']=1,
-}
-
-local CONST = { ['nil']=1, ['true']=1, ['false']=1 }
 
 local BUILTIN = {
   ['print']=1, ['require']=1, ['type']=1, ['tostring']=1, ['tonumber']=1,
@@ -35,12 +28,6 @@ local BUILTIN = {
 }
 
 local PUNCT = { ['(']=1, [')']=1, ['[']=1, [']']=1, [';']=1, [':']=1, [',']=1, ['.']=1 }
-
--- multi-char operators, longest first
-local OPS = {
-  '...', '::', '==', '~=', '<=', '>=', '&&', '||', '??', '?.', '->', '=>',
-  '<<', '>>', '..',
-}
 
 local SH_KW = {
   ['if']=1, ['then']=1, ['else']=1, ['elif']=1, ['fi']=1, ['for']=1,
@@ -66,19 +53,6 @@ local function text(out, s) { out[#out + 1] = s }
 
 local function span(out, cls, s) {
   out[#out + 1] = h('span', { class = cls }, s)
-}
-
--- longBracketEnd(s, i): s[i] == '[' and the next char is '[' or '='. Returns
--- the index just past the matching close, or nil.
-local function longBracketEnd(s, i) {
-  local j = i + 1
-  local level = 0
-  while s:sub(j, j) == '=' { level = level + 1; j = j + 1 }
-  if s:sub(j, j) != '[' { return nil }
-  local close = ']' .. string.rep('=', level) .. ']'
-  local e = s:find(close, j + 1, true)
-  if e == nil { return nil }
-  return e + #close
 }
 
 local function scanNumber(s, i) {
@@ -108,158 +82,45 @@ local function scanNumber(s, i) {
   return j
 }
 
--- midnight / lua ---------------------------------------------------------
+-- midnight ---------------------------------------------------------------
 
-local function scanLua(s, i, interp) {
-  i = i || 1
+-- token kinds from midnight.syntax -> classes (words and symbols are below)
+local CLASS = {
+  keyword = 'tok-keyword', constant = 'tok-const', number = 'tok-number',
+  string = 'tok-string', interp = 'tok-interp', format = 'tok-interp',
+  comment = 'tok-comment', markup = 'tok-punct', tag = 'tok-tag',
+  attr = 'tok-attr',
+}
+
+-- the next token after toks[i] that isn't whitespace
+local function nextToken(toks, i) {
+  local t = toks[i + 1]
+  if t && t.kind == 'plain' && t.text:match('^%s*$') { t = toks[i + 2] }
+  return t
+}
+
+local function scanMidnight(code) {
+  -- (on a lex error, ex. a snippet w/ an unterminated string, the tokens
+  -- after it are one plain token, which is fine for a code block)
+  local toks = syntax.tokens(code)
   local out = {}
-  local n = #s
-  local depth = 0
-  while i <= n {
-    local c = s:sub(i, i)
-
-    if c == '-' && s:sub(i + 1, i + 1) == '-' {
-      if s:sub(i + 2, i + 2) == '[' && (s:sub(i + 3, i + 3) == '[' || s:sub(i + 3, i + 3) == '=') {
-        local e = longBracketEnd(s, i + 2)
-        if e == nil {
-          span(out, 'tok-comment', s:sub(i))
-          i = n + 1
-        } else {
-          span(out, 'tok-comment', s:sub(i, e - 1))
-          i = e
-        }
-      } else {
-        local e = s:find('\n', i, true)
-        if e == nil {
-          span(out, 'tok-comment', s:sub(i))
-          i = n + 1
-        } else {
-          span(out, 'tok-comment', s:sub(i, e - 1))
-          i = e
-        }
+  for i, t in ipairs(toks) {
+    local cls = CLASS[t.kind]
+    if t.kind == 'word' {
+      local nxt = nextToken(toks, i)
+      if BUILTIN[t.text] {
+        cls = 'tok-builtin'
+      } elseif t.text == 'match' && nxt && nxt.kind != 'symbol' {
+        cls = 'tok-keyword' -- (`match` is only a keyword before its value)
+      } elseif nxt && nxt.kind == 'symbol' && nxt.text == '(' {
+        cls = 'tok-function'
       }
-    } elseif c == '[' && (s:sub(i + 1, i + 1) == '[' || s:sub(i + 1, i + 1) == '=') {
-      local level = 0
-      local j = i + 1
-      while s:sub(j, j) == '=' { level = level + 1; j = j + 1 }
-      if s:sub(j, j) != '[' {
-        text(out, s:sub(i))
-        i = n + 1
-      } else {
-        local close = ']' .. string.rep('=', level) .. ']'
-        local closeStart = s:find(close, j + 1, true)
-        local buf = { s:sub(i, j) }  -- opening [[ or [=[
-        local k = j + 1
-        while k <= n && (closeStart == nil || k < closeStart) {
-          local d = s:sub(k, k)
-          if d == '{' {
-            span(out, 'tok-string', table.concat(buf))
-            buf = {}
-            span(out, 'tok-interp', '{')
-            local sub, kk = scanLua(s, k + 1, true)
-            for _, x in ipairs(sub) { out[#out + 1] = x }
-            span(out, 'tok-interp', '}')
-            k = kk + 1
-          } else {
-            buf[#buf + 1] = d
-            k = k + 1
-          }
-        }
-        if closeStart == nil {
-          span(out, 'tok-string', table.concat(buf))
-          i = n + 1
-        } else {
-          buf[#buf + 1] = close
-          span(out, 'tok-string', table.concat(buf))
-          i = closeStart + #close
-        }
-      }
-    } elseif c == "'" || c == '"' {
-      local q = c
-      local j = i + 1
-      local buf = { q }
-      while j <= n {
-        local d = s:sub(j, j)
-        if d == '\\' {
-          buf[#buf + 1] = s:sub(j, j + 1)
-          j = j + 2
-        } elseif d == q {
-          buf[#buf + 1] = d
-          j = j + 1
-          break
-        } elseif q == '"' && d == '{' {
-          span(out, 'tok-string', table.concat(buf))
-          buf = {}
-          span(out, 'tok-interp', '{')
-          local sub, k = scanLua(s, j + 1, true)
-          for _, x in ipairs(sub) { out[#out + 1] = x }
-          span(out, 'tok-interp', '}')
-          j = k + 1
-        } else {
-          buf[#buf + 1] = d
-          j = j + 1
-        }
-      }
-      span(out, 'tok-string', table.concat(buf))
-      i = j
-    } elseif c == '{' {
-      if interp { depth = depth + 1 }
-      span(out, 'tok-punct', '{')
-      i = i + 1
-    } elseif c == '}' {
-      if interp && depth == 0 {
-        return out, i
-      }
-      if interp { depth = depth - 1 }
-      span(out, 'tok-punct', '}')
-      i = i + 1
-    } elseif isDigit(c) || (c == '.' && isDigit(s:sub(i + 1, i + 1))) {
-      local e = scanNumber(s, i)
-      span(out, 'tok-number', s:sub(i, e - 1))
-      i = e
-    } elseif isIdentStart(c) {
-      local j = i
-      while j <= n && isIdentChar(s:sub(j, j)) { j = j + 1 }
-      local word = s:sub(i, j - 1)
-      if CONST[word] {
-        span(out, 'tok-const', word)
-      } elseif KW[word] {
-        span(out, 'tok-keyword', word)
-      } elseif BUILTIN[word] {
-        span(out, 'tok-builtin', word)
-      } else {
-        local k = j
-        while k <= n && s:sub(k, k):match('%s') { k = k + 1 }
-        if s:sub(k, k) == '(' {
-          span(out, 'tok-function', word)
-        } else {
-          text(out, word)
-        }
-      }
-      i = j
-    } elseif c:match('%s') {
-      local j = i
-      while j <= n && s:sub(j, j):match('%s') { j = j + 1 }
-      text(out, s:sub(i, j - 1))
-      i = j
-    } else {
-      local matched = nil
-      for _, op in ipairs(OPS) {
-        if s:sub(i, i + #op - 1) == op { matched = op; break }
-      }
-      if matched {
-        span(out, 'tok-operator', matched)
-        i = i + #matched
-      } elseif PUNCT[c] {
-        span(out, 'tok-punct', c)
-        i = i + 1
-      } else {
-        span(out, 'tok-operator', c)
-        i = i + 1
-      }
+    } elseif t.kind == 'symbol' {
+      cls = if PUNCT[t.text] || t.text == '{' || t.text == '}' { 'tok-punct' } else { 'tok-operator' }
     }
+    if cls { span(out, cls, t.text) } else { text(out, t.text) }
   }
-  return out, i
+  return out
 }
 
 -- shell ------------------------------------------------------------------
@@ -376,7 +237,7 @@ local function scanJson(s) {
       local j = i
       while j <= n && isIdentChar(s:sub(j, j)) { j = j + 1 }
       local word = s:sub(i, j - 1)
-      if CONST[word] || word == 'null' {
+      if word == 'true' || word == 'false' || word == 'null' {
         span(out, 'tok-const', word)
       } else {
         text(out, word)
@@ -399,7 +260,7 @@ local function scanJson(s) {
 -- public -----------------------------------------------------------------
 
 local LANG = {
-  midnight = scanLua, lua = scanLua, mn = scanLua,
+  midnight = scanMidnight, mn = scanMidnight,
   sh = scanSh, bash = scanSh, shell = scanSh, zsh = scanSh,
   json = scanJson,
 }
@@ -408,8 +269,7 @@ function M.highlight(lang, code) {
   if code == nil { return nil }
   local name = if lang { lang } else { '' }
   name = name:gsub('%s.*$', ''):lower()
-  if name == '' { name = 'midnight' }
-  local fn = LANG[name]
+  local fn = LANG[name] -- (an unlabeled block is plain text)
   if fn == nil { return nil }
   local out = fn(code)
   if #out == 0 { return nil }

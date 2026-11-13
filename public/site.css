@@ -32,6 +32,8 @@
   --tok-operator: #c2cadb;
   --tok-punct: #8f97ad;
   --tok-interp: #ffcb6b;
+  --tok-tag: #f07178;
+  --tok-attr: #ffcb6b;
 }
 
 [data-theme="light"] {
@@ -63,6 +65,8 @@
   --tok-operator: #57606a;
   --tok-punct: #6e7781;
   --tok-interp: #9a6700;
+  --tok-tag: #b31d28;
+  --tok-attr: #6639ba;
 }
 
 * {
@@ -409,6 +413,37 @@ pre.code code {
   color: inherit;
 }
 
+/* Copyable code blocks (opt-in via ```lang copy) ------------------------ */
+
+.code-block {
+  position: relative;
+  margin: 1rem 0;
+}
+
+.code-block > pre.code {
+  margin: 0;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
 pre.code .tok-keyword  { color: var(--tok-keyword); }
 pre.code .tok-function { color: var(--tok-function); }
 pre.code .tok-builtin  { color: var(--tok-builtin); }
@@ -419,6 +454,8 @@ pre.code .tok-comment  { color: var(--tok-comment); font-style: italic; }
 pre.code .tok-operator { color: var(--tok-operator); }
 pre.code .tok-punct    { color: var(--tok-punct); }
 pre.code .tok-interp   { color: var(--tok-interp); font-weight: 600; }
+pre.code .tok-tag      { color: var(--tok-tag); }
+pre.code .tok-attr     { color: var(--tok-attr); }
 
 /* Tables ----------------------------------------------------------------- */
 
@@ -487,7 +524,9 @@ hr {
   }
 
   .sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     height: auto;
     padding: 0.75rem 1rem;
     border-right: none;
@@ -499,6 +538,11 @@ hr {
       "nav   nav   nav";
     align-items: center;
     gap: 0.5rem 0.75rem;
+    transition: transform 0.25s ease, background 0.25s ease;
+  }
+
+  .sidebar.bar-hidden {
+    transform: translateY(-100%);
   }
 
   .brand {

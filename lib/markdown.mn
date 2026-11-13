@@ -8,7 +8,8 @@
 --
 -- Not implemented (intentionally): setext headings, indented code blocks,
 -- underscore (`_`) emphasis, inline HTML, and HTML entities. Text is escaped,
--- so write literal UTF-8 (ex. `—`) instead of `&mdash;`.
+-- so write literal UTF-8 (ex. `—`) instead of `&mdash;`. Link / image urls
+-- w/ a scheme other than http(s) / mailto (ex. `javascript:`) become `#`.
 
 local { h } = require('midnight.markup')
 local highlight = require('lib/highlight')
@@ -25,32 +26,16 @@ local function trim(s) {
 
 -- find a literal substring (no pattern magic), from `start`
 local function findPlain(s, sub, start) {
-  start = start || 1
-  local n = #sub
-  if n == 0 { return start }
-  for i = start, #s - n + 1 {
-    if s:sub(i, i + n - 1) == sub { return i }
-  }
-  return nil
+  return (s:find(sub, start || 1, true))
 }
 
 local function splitLines(src) {
   local lines = {}
-  local start = 1
-  while true {
-    local nl = findPlain(src, '\n', start)
-    if nl {
-      lines[#lines + 1] = src:sub(start, nl - 1)
-      start = nl + 1
-    } else {
-      lines[#lines + 1] = src:sub(start)
-      break
-    }
-  }
+  for line in (src .. '\n'):gmatch('(.-)\n') { lines[#lines + 1] = line }
   return lines
 }
 
-local function slug(text) {
+local function slug(text, ctx) {
   local s = text:lower()
   s = s:gsub('`([^`]+)`', '%1')
   s = s:gsub('[%s_]+', '-')
@@ -58,7 +43,34 @@ local function slug(text) {
   s = s:gsub('%-+', '-')
   s = s:gsub('^%-+', '')
   s = s:gsub('%-+$', '')
+  -- (like github: repeated headings get -1, -2, ...)
+  local n = ctx.slugs[s]
+  ctx.slugs[s] = (n || 0) + 1
+  if n { s = s .. '-' .. n }
   return s
+}
+
+-- safeUrl drops urls w/ a scheme that isn't http(s) / mailto (ex.
+-- `javascript:`); relative urls and fragments are kept.
+local SCHEMES = { http = true, https = true, mailto = true }
+local function safeUrl(url) {
+  local scheme = url:match('^%s*(%a[%w+.-]*):')
+  if scheme && !SCHEMES[scheme:lower()] { return '#' }
+  return url
+}
+
+-- emphasisClose finds the `*` / `**` closing emphasis that opens at i (the
+-- opening one isn't followed by a space, the closing one isn't preceded by
+-- one, like CommonMark, so `2 * 3 * 4` isn't emphasis).
+local function emphasisClose(text, i, delim) {
+  local open = i + #delim
+  if text:sub(open, open):match('^%s?$') { return nil }
+  local close = findPlain(text, delim, open + 1)
+  while close {
+    if !text:sub(close - 1, close - 1):match('%s') { return close }
+    close = findPlain(text, delim, close + 1)
+  }
+  return nil
 }
 
 -- inline ------------------------------------------------------------------
@@ -79,7 +91,7 @@ local function inline(text) {
   while i <= n {
     local c = text:sub(i, i)
 
-    if c == '\\' && i < n {
+    if c == '\\' && text:sub(i + 1, i + 1):match('%p') {
       flush()
       out[#out + 1] = text:sub(i + 1, i + 1)
       i = i + 2
@@ -103,7 +115,7 @@ local function inline(text) {
         if paren {
           flush()
           out[#out + 1] = h('img', {
-            src = text:sub(close + 2, paren - 1),
+            src = safeUrl(text:sub(close + 2, paren - 1)),
             alt = text:sub(i + 2, close - 1),
           })
           i = paren + 1
@@ -128,7 +140,7 @@ local function inline(text) {
             url = trim(target:sub(1, sp - 1))
             title = target:sub(sp + 1):gsub('^"', ''):gsub('"$', '')
           }
-          out[#out + 1] = h('a', { href = url, title = title }, inline(text:sub(i + 1, close - 1)))
+          out[#out + 1] = h('a', { href = safeUrl(url), title = title }, inline(text:sub(i + 1, close - 1)))
           i = paren + 1
         } else {
           buf[#buf + 1] = c
@@ -141,8 +153,8 @@ local function inline(text) {
     } elseif c == '*' {
       local dbl = text:sub(i, i + 1) == '**'
       local delim = if dbl { '**' } else { '*' }
-      local close = findPlain(text, delim, i + #delim)
-      if close && close > i + #delim {
+      local close = emphasisClose(text, i, delim)
+      if close {
         flush()
         out[#out + 1] = h(if dbl { 'strong' } else { 'em' }, nil, inline(text:sub(i + #delim, close - 1)))
         i = close + #delim
@@ -156,7 +168,7 @@ local function inline(text) {
       if inner && (inner:match('^%a[%w%+%-%.]*:') || inner:match('^[%w%+%-%.]+@[%w%-%.]+')) {
         flush()
         local href = if inner:match('@') && !inner:match(':') { 'mailto:' .. inner } else { inner }
-        out[#out + 1] = h('a', { href = href }, inner)
+        out[#out + 1] = h('a', { href = safeUrl(href) }, inner)
         i = close + 1
       } else {
         buf[#buf + 1] = c
@@ -174,6 +186,8 @@ local function inline(text) {
 
 -- blocks ------------------------------------------------------------------
 
+local renderBlocks -- (blockquotes and list items render their own blocks)
+
 -- fenceInfo(line) -> ch, len, info (or nil). `ch` is '`' or '~', len >= 3.
 local function fenceInfo(line) {
   local s = trim(line)
@@ -183,6 +197,15 @@ local function fenceInfo(line) {
   while s:sub(k + 1, k + 1) == ch { k = k + 1 }
   if k < 3 { return nil }
   return ch, k, trim(s:sub(k + 1))
+}
+
+-- parseInfo(info) -> lang, flags: the first word is the language, the rest are
+-- space-separated directives (ex. "midnight copy" -> "midnight", {copy = true}).
+local function parseInfo(info) {
+  local lang, rest = (info || ''):match('^(%S*)%s*(.-)%s*$')
+  local flags = {}
+  for w in rest:gmatch('%S+') { flags[w] = true }
+  return lang, flags
 }
 
 local function isHr(line) {
@@ -241,10 +264,11 @@ local function isTableSeparator(line) {
 }
 
 -- a table header row: the current line has a '|' and the next is a separator
+-- w/ as many cells (like GFM, so `a | b` over a `---` rule isn't a table)
 local function isTable(lines, i) {
   if i >= #lines { return false }
   if findPlain(lines[i], '|') == nil { return false }
-  return isTableSeparator(lines[i + 1])
+  return isTableSeparator(lines[i + 1]) && #splitRow(lines[i]) == #splitRow(lines[i + 1])
 }
 
 local function parseAligns(sepLine) {
@@ -296,19 +320,25 @@ local function fencedCode(lines, i) {
   }
   local code = table.concat(buf, '\n')
   if #buf > 0 { code = code .. '\n' }
+  local lang, flags = parseInfo(info)
   local props = { class = 'code' }
-  if info && info != '' { props['data-lang'] = info }
-  local children = highlight.highlight(info, code)
+  if lang != '' { props['data-lang'] = lang }
+  local children = highlight.highlight(lang, code)
   if children == nil { children = code }
-  return h('pre', props, h('code', nil, children)), i + 1
+  if !flags.copy {
+    return h('pre', props, h('code', nil, children)), i + 1
+  }
+  return h('div', { class = 'code-block' },
+    h('pre', props, h('code', nil, children)),
+    h('button', { class = 'copy-btn', type = 'button', title = 'copy code' }, 'Copy')), i + 1
 }
 
-local function heading(lines, i) {
+local function heading(lines, i, ctx) {
   local line = lines[i]
   local level, text = line:match('^%s*(#+)%s+(.+)$')
   if !level || #level > 6 { return nil, i }
   text = trim(text:gsub('%s+#+%s*$', ''))
-  return h('h' .. #level, { id = slug(text) }, inline(text)), i + 1
+  return h('h' .. #level, { id = slug(text, ctx) }, inline(text)), i + 1
 }
 
 local function tableBlock(lines, i) {
@@ -340,7 +370,7 @@ local function tableBlock(lines, i) {
       h('tbody', nil, trows))), i
 }
 
-local function blockquote(lines, i) {
+local function blockquote(lines, i, ctx) {
   local buf = {}
   while i <= #lines {
     local line = lines[i]
@@ -349,10 +379,10 @@ local function blockquote(lines, i) {
     buf[#buf + 1] = stripped
     i = i + 1
   }
-  return h('blockquote', nil, M.render(table.concat(buf, '\n'))), i
+  return h('blockquote', nil, renderBlocks(table.concat(buf, '\n'), ctx)), i
 }
 
-local function list(lines, i) {
+local function list(lines, i, ctx) {
   local first = listItemMarker(lines[i])
   local items = {}
 
@@ -379,7 +409,7 @@ local function list(lines, i) {
       local nm = listItemMarker(line)
       if nm {
         if nm.indent <= first.indent { break }
-        local nel, ni = list(lines, i)
+        local nel, ni = list(lines, i, ctx)
         nested[#nested + 1] = nel
         i = ni
       } else {
@@ -392,7 +422,7 @@ local function list(lines, i) {
     if #text == 1 {
       children[1] = inline(text[1])
     } elseif #text > 1 {
-      children[1] = M.render(table.concat(text, '\n'))
+      children[1] = renderBlocks(table.concat(text, '\n'), ctx)
     }
     for _, n in ipairs(nested) { children[#children + 1] = n }
     items[#items + 1] = h('li', nil, children)
@@ -401,8 +431,11 @@ local function list(lines, i) {
   return h(first.typ, nil, items), i
 }
 
+-- a paragraph always takes its first line (ex. `# ` w/o a heading's text), so
+-- render always moves forward
 local function paragraph(lines, i) {
-  local buf = {}
+  local buf = { trim(lines[i]) }
+  i = i + 1
   while i <= #lines {
     local line = lines[i]
     if line:match('^%s*$') { break }
@@ -418,9 +451,10 @@ local function paragraph(lines, i) {
   return h('p', nil, inline(table.concat(buf, ' '))), i
 }
 
--- public ------------------------------------------------------------------
+-- render ------------------------------------------------------------------
 
-function M.render(src) {
+-- (ctx is per document: the heading ids so far)
+renderBlocks = (src, ctx) -> {
   local lines = splitLines(src || '')
   local blocks = {}
   local i = 1
@@ -434,7 +468,7 @@ function M.render(src) {
       blocks[#blocks + 1] = el
       i = ni
     } elseif line:match('^%s*#+%s') {
-      local el, ni = heading(lines, i)
+      local el, ni = heading(lines, i, ctx)
       if el {
         blocks[#blocks + 1] = el
         i = ni
@@ -451,11 +485,11 @@ function M.render(src) {
       blocks[#blocks + 1] = h('hr')
       i = i + 1
     } elseif line:match('^%s*>') {
-      local el, ni = blockquote(lines, i)
+      local el, ni = blockquote(lines, i, ctx)
       blocks[#blocks + 1] = el
       i = ni
     } elseif listItemMarker(line) {
-      local el, ni = list(lines, i)
+      local el, ni = list(lines, i, ctx)
       blocks[#blocks + 1] = el
       i = ni
     } else {
@@ -465,6 +499,12 @@ function M.render(src) {
     }
   }
   return blocks
+}
+
+-- public ------------------------------------------------------------------
+
+function M.render(src) {
+  return renderBlocks(src, { slugs = {} })
 }
 
 function M.file(path) {

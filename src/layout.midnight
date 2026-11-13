@@ -16,13 +16,49 @@ local pages = {
   { path = '/tools', title = 'Tools' },
 }
 
-local Nav = ({ path }) -> <nav class="nav" id="nav">
-  <ul>
-    {map(pages, (p) -> <li>
-      <a href={p.path} class={cx({ active = p.path == path })}>{p.title}</a>
-    </li>)}
-  </ul>
-</nav>
+local Nav = ({ path }) -> {
+  return <> 
+    <script type="module">
+      import {dom, style, ls} from '/js/corvid.bundle.js'
+      {
+        const menu = new dom.el('#menu-toggle');
+        const sidebar = new dom.el('#sidebar');
+        menu.on('click', () => {
+          sidebar.toggleClass('open')
+          menu.attr('aria-expanded', String(sidebar.hasClass('open')))
+        })
+      }
+    </script>
+    <button 
+      class="menu-toggle" 
+      id="menu-toggle" 
+      title="menu" 
+      aria-label="toggle menu" 
+      aria-expanded="false"
+    >
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+    </button>
+    <nav class="nav" id="nav">
+    <ul>
+      {map(pages, (p) -> <li>
+        <a href={p.path} class={cx({ active = p.path == path })}>{p.title}</a>
+      </li>)}
+    </ul>
+    </nav>
+  </>
+}
+
+local Sidebar = ({ path }) -> <aside class="sidebar" id="sidebar">
+  <a class="brand" href="/">midnight</a>
+  <Nav path={path}/>
+  <button class="theme-toggle" id="theme-toggle" title="toggle theme">
+    <span class="icon icon-sun" aria-hidden="true"></span>
+    <span class="icon icon-moon" aria-hidden="true"></span>
+    <span id="theme-label">light</span>
+  </button>
+</aside>
 
 return ({ title, path, children }) -> <html>
   <head>
@@ -42,20 +78,7 @@ return ({ title, path, children }) -> <html>
   </head>
   <body>
     <div class="layout">
-      <aside class="sidebar" id="sidebar">
-        <a class="brand" href="/">midnight</a>
-        <button class="menu-toggle" id="menu-toggle" title="menu" aria-label="toggle menu" aria-expanded="false">
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span class="bar"></span>
-        </button>
-        <Nav path={path}/>
-        <button class="theme-toggle" id="theme-toggle" title="toggle theme">
-          <span class="icon icon-sun" aria-hidden="true"></span>
-          <span class="icon icon-moon" aria-hidden="true"></span>
-          <span id="theme-label">light</span>
-        </button>
-      </aside>
+      <Sidebar path={path} />
       <main class="content">{children}</main>
     </div>
     <script type="module">
@@ -77,11 +100,44 @@ return ({ title, path, children }) -> <html>
           try { ls.set('theme', nt) } catch (e) {}
         })
 
-        const menu = new dom.el('#menu-toggle');
+        // auto-hide the mobile top bar: slide out on scroll down, back on up
         const sidebar = new dom.el('#sidebar');
-        menu.on('click', () => {
-          sidebar.toggleClass('open')
-          menu.attr('aria-expanded', String(sidebar.hasClass('open')))
+        let lastY = window.scrollY
+        window.addEventListener('scroll', () => {
+          const y = window.scrollY
+          if (sidebar.hasClass('open')) { lastY = y; return }
+          if (y > lastY && y > 96) {
+            sidebar.addClass('bar-hidden')
+          } else if (y < lastY) {
+            sidebar.removeClass('bar-hidden')
+          }
+          lastY = y
+        }, { passive: true })
+
+        // copy buttons (opt-in per code block: ```lang copy)
+        const copyText = (t) => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(t)
+          }
+          const ta = document.createElement('textarea')
+          ta.value = t
+          ta.style.position = 'fixed'
+          ta.style.opacity = '0'
+          document.body.appendChild(ta)
+          ta.select()
+          document.execCommand('copy')
+          document.body.removeChild(ta)
+          return Promise.resolve()
+        }
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.copy-btn')
+          if (!btn) return
+          const code = btn.closest('.code-block').querySelector('code')
+          copyText(code ? code.textContent : '').then(() => {
+            const prev = btn.textContent
+            btn.textContent = 'Copied!'
+            setTimeout(() => { btn.textContent = prev }, 1500)
+          })
         })
       }
     </script>

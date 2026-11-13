@@ -4,7 +4,7 @@
 
 Midnight ships as a Go library and a `midnight` CLI:
 
-```sh
+```sh copy
 go get github.com/taybart/midnight
 go install github.com/taybart/midnight/cmd/midnight@latest
 ```
