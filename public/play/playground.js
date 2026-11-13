@@ -219,7 +219,7 @@ const initialCode = async () => {
 
 const boot = async () => {
   editor.set(await initialCode())
-  const module = await loadWasm('/play/midnight.wasm.gz')
+  const module = await loadWasm('/play/midnight.wasm')
   await start(module)
   runner = new Runner(module, handlers)
   editor.refresh() // (highlighted, now that the lexer is here)
