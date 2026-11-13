@@ -2,11 +2,11 @@ config { default_language = "midnight" }
 
 locals {
   cache_ttl = env("DEV") == "true" ? "1s" : "1h"
-  handler   = <<-TMPL
+  handler   = <<-MIDNIGHT
     local Layout = require('src/layout')
     local md = require('lib/markdown')
     return <Layout path="{{.path}}" title="{{.title}}">{md.file('src/docs/{{.file}}')}</Layout>
-  TMPL
+  MIDNIGHT
 }
 
 
