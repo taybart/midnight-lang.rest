@@ -1,0 +1,32 @@
+-- meta.midnight: a page's <title> and its link preview tags, from the few
+-- things that matter. Goes in <head>:
+--
+--   <Meta
+--     title="Reference"
+--     site="Midnight"
+--     description="The language, one feature at a time."
+--     url="https://example.com/reference"
+--     image="https://example.com/img/og.png"
+--   />
+--
+-- Only `title` is required. It writes Open Graph tags (what Slack, Discord,
+-- iMessage, LinkedIn, Mastodon, ... read for previews), plus `twitter:card`,
+-- which X needs to show a big image (it reads the rest from Open Graph).
+--
+-- Previews need absolute urls: `url` and `image` must start w/ https://.
+-- Preview images should be PNG or JPG (SVG isn't shown), 1200x630.
+return ({ title, site, description, url, image, imageAlt, type = 'website' }) -> <>
+  <title>{if site && site != title { "{site} · {title}" } else { title }}</title>
+  {description && <meta name="description" content={description}/>}
+  {url && <link rel="canonical" href={url}/>}
+
+  <meta property="og:type" content={type}/>
+  <meta property="og:title" content={title}/>
+  {site && <meta property="og:site_name" content={site}/>}
+  {description && <meta property="og:description" content={description}/>}
+  {url && <meta property="og:url" content={url}/>}
+  {image && <meta property="og:image" content={image}/>}
+  {image && imageAlt && <meta property="og:image:alt" content={imageAlt}/>}
+
+  <meta name="twitter:card" content={if image { 'summary_large_image' } else { 'summary' }}/>
+</>

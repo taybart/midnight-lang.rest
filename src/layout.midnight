@@ -7,15 +7,48 @@
 -- The theme is client side: a tiny inline script reads/writes localStorage and
 -- sets `data-theme` on <html>, so the choice survives navigation.
 local { map, cx } = require('midnight.markup')
+local Meta = require('lib/meta')
 
+-- where the site lives, for link previews (they need absolute urls)
+local SITE_URL = 'https://midnightstack.rest'
+
+-- the nav, and each page's link preview text
 local pages = {
-  { path = '/', title = 'Introduction' },
-  { path = '/getting-started', title = 'Getting Started' },
-  { path = '/reference', title = 'Reference' },
-  { path = '/from-lua', title = 'Coming from Lua' },
-  { path = '/markup', title = 'Markup' },
-  { path = '/tools', title = 'Tools' },
-  { path = '/playground', title = 'Playground' },
+  {
+    path = '/', title = 'Introduction',
+    description = 'Midnight is a Lua dialect that runs on Go: braces, defaults, destructuring, string interpolation, match, and HTML markup, compiling to plain Lua.',
+  },
+  {
+    path = '/getting-started', title = 'Getting Started',
+    description = 'Install the midnight CLI, run and compile scripts, and embed Midnight in Go programs.',
+  },
+  {
+    path = '/reference', title = 'Reference',
+    description = 'The Midnight language, one feature at a time: strings, tables, destructuring, functions, scopes, operators, match, and if expressions.',
+  },
+  {
+    path = '/from-lua', title = 'Coming from Lua',
+    description = "What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.",
+  },
+  {
+    path = '/markup', title = 'Markup',
+    description = 'HTML-style markup in Midnight: components, state, scoped styles, and interactive pages served by rest.',
+  },
+  {
+    path = '/tools', title = 'Tools',
+    description = 'midnight compile, clean, lint, and fmt: what they do, their rules, and their output.',
+  },
+  {
+    path = '/playground', title = 'Playground',
+    description = 'Write and run Midnight in your browser, clickable pages included. Nothing to install.',
+  },
+}
+
+local function pageFor(path) {
+  for _, p in ipairs(pages) {
+    if p.path == path { return p }
+  }
+  return {}
 }
 
 local Nav = ({ path }) -> {
@@ -109,7 +142,14 @@ return ({ title, path, children, wide }) -> <html>
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>{"Midnight · {title}"}</title>
+    <Meta
+      title={title}
+      site="Midnight"
+      description={pageFor(path).description}
+      url={SITE_URL .. path}
+      image="{SITE_URL}/img/og.png"
+      imageAlt="midnight: a Lua dialect that runs on Go"
+    />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
     <link rel="stylesheet" href="/site.css"/>
     <script>
