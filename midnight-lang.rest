@@ -1,7 +1,7 @@
 config { default_language = "midnight" }
 
 locals {
-  cache_ttl = env("DEV") == "true" ? "1s" : "1h"
+  cache_ttl = "1h"
   handler   = <<-MIDNIGHT
     local Layout = require('src/layout')
     local md = require('lib/markdown')
