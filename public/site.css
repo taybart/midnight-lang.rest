@@ -177,7 +177,7 @@ body::after {
   opacity: 0;
 }
 
-/* a second handful of stars, twinkling out of step w/ the first, so the sky
+/* a second handful of stars, twinkling out of step withthe first, so the sky
    shimmers instead of dimming all at once (the root's ::after, since body's
    pseudo-elements are taken) */
 :root::after {
@@ -548,7 +548,7 @@ pre.code code {
   gap: 0.75rem;
 }
 
-/* the editor and the output side by side, each w/ its bar on top (in the
+/* the editor and the output side by side, each withits bar on top (in the
    same row, so they line up); stacked on phones */
 .pg-grid {
   display: grid;
@@ -668,7 +668,7 @@ pre.code code {
   color: var(--tok-tag);
 }
 
-/* the editor: a transparent textarea over its highlighted copy, w/ line
+/* the editor: a transparent textarea over its highlighted copy, withline
    numbers (the gutter) beside them, and problems' lines marked behind them */
 .pg-editor {
   --gutter: 3rem;
@@ -731,7 +731,7 @@ pre.code code {
   background: rgba(185, 196, 255, 0.25);
 }
 
-/* (scrolled w/ the textarea, see editor.js) */
+/* (scrolled withthe textarea, see editor.js) */
 .pg-gutter {
   position: absolute;
   inset: 0 auto 0 0;
@@ -756,7 +756,7 @@ pre.code code {
   opacity: 0.6;
 }
 
-/* a line w/ a lint problem (warn), or a syntax / runtime error (err) */
+/* a line witha lint problem (warn), or a syntax / runtime error (err) */
 .pg-gutter .warn,
 .pg-gutter .err {
   opacity: 1;
@@ -775,7 +775,7 @@ pre.code code {
   color: var(--tok-tag);
 }
 
-/* the marked lines, behind the code: tinted, w/ a dotted underline */
+/* the marked lines, behind the code: tinted, witha dotted underline */
 .pg-marks > div {
   position: relative;
 }
@@ -789,7 +789,7 @@ pre.code code {
   border-bottom: 1px dotted color-mix(in srgb, currentColor 70%, transparent);
 }
 
-/* what's wrong w/ a marked line, on hover (or a tap on its number) */
+/* what's wrong witha marked line, on hover (or a tap on its number) */
 .pg-tip {
   position: absolute;
   z-index: 2;
@@ -885,13 +885,13 @@ iframe.pg-pane {
     min-height: 14rem;
   }
 
-  /* (as tall as its page, see page.js: the page scrolls w/ the playground) */
+  /* (as tall as its page, see page.js: the page scrolls withthe playground) */
   iframe.pg-pane {
     flex: none;
   }
 }
 
-/* iOS zooms in on a text field w/ a font under 16px when it's tapped */
+/* iOS zooms in on a text field witha font under 16px when it's tapped */
 @media (pointer: coarse) {
   .pg-editor {
     --code-size: 16px;

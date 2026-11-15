@@ -1,6 +1,6 @@
 # Tools
 
-The `midnight` command has subcommands for working w/ Midnight projects:
+The `midnight` command has subcommands for working with Midnight projects:
 
 | Command | Does |
 | --- | --- |
@@ -23,14 +23,14 @@ midnight compile [-o dir] [-f] [-p] [-markup-factory name] [paths]
 Compiles `foo.mn` to `foo.lua` (next to it, or under `-o dir`, keeping the
 relative path). Same as the reference compiler's `midnight compile`:
 
-- Compiled files end w/ a `-- __MIDNIGHT_COMPILED__` footer.
+- Compiled files end with a `-- __MIDNIGHT_COMPILED__` footer.
 - Existing `.lua` files without the footer are never overwritten, unless `-f`.
 - `-p` prints the compiled code instead of writing files.
 - Stops at the first file that fails to compile (exit 1).
 
-The output is Lua 5.1 + `goto` (`continue` compiles to `goto`), w/ bit
+The output is Lua 5.1 + `goto` (`continue` compiles to `goto`), with bit
 operators compiled to `bit32` calls, so it runs on LuaJIT and Lua 5.2+ (or 5.1
-w/ a `bit32` polyfill). Statements are kept on their Midnight lines, so errors
+with a `bit32` polyfill). Statements are kept on their Midnight lines, so errors
 report Midnight line numbers.
 
 ## clean
@@ -39,7 +39,7 @@ report Midnight line numbers.
 midnight clean [paths]
 ```
 
-Removes `.lua` files that end w/ the `-- __MIDNIGHT_COMPILED__` footer (from either
+Removes `.lua` files that end with the `-- __MIDNIGHT_COMPILED__` footer (from either
 midnight or the reference compiler). Other Lua files are never removed.
 
 ## lint
@@ -65,13 +65,13 @@ and `-` reads stdin.
 
 Not reported:
 
-- Names starting w/ `_` (ex. `_`, `_unused`) when unused.
+- Names starting with `_` (ex. `_`, `_unused`) when unused.
 - Unused parameters and loop variables.
 - `global x` / `module x` names (they compile to `_G.x` / `_MODULE.x`).
 - The implicit `self` of `=>` functions and `:` methods, when shadowed.
 - Names made up by the Midnight parser (ex. for `continue`, `match`, destructuring).
 - Standard globals (Lua 5.1 - 5.5, LuaJIT, and midnight's `bit32` / `channel`).
-  Add others (ex. ones the host program provides) w/ `-g name,name`, or w/ a
+  Add others (ex. ones the host program provides) with `-g name,name`, or with a
   `.luarc.json` (below).
 
 Globals are also read from the nearest `.luarc.json` (lua-language-server's
@@ -80,7 +80,7 @@ config, looked up from each file's directory), so editor and linter agree:
 - `diagnostics.globals`: names listed directly.
 - `workspace.library`: `*.lua` files (or directories of them, relative to the
   `.luarc.json`) whose top-level globals count as defined, ex. a `---@meta`
-  definitions file w/ `harmony = {}` or `function fetch(url) end`.
+  definitions file with `harmony = {}` or `function fetch(url) end`.
 
 ```json
 {
@@ -96,7 +96,7 @@ print(provided_by_host) -- midnight-lint: ignore
 ```
 
 Limitations: diagnostics have line numbers only (no columns), and destructured
-names w/ defaults always count as used (the default compiles to a nil check,
+names with defaults always count as used (the default compiles to a nil check,
 which reads them).
 
 The linter runs on the AST (the `lint` package), after Midnight is lowered to Lua.
@@ -118,7 +118,7 @@ otherwise.
 midnight fmt [-check] [paths | -]
 ```
 
-Formats files in place (printing the paths it changed), or stdin to stdout w/
+Formats files in place (printing the paths it changed), or stdin to stdout with
 `-`. `-check` doesn't write anything: it prints the paths of files that need
 formatting, and exits 1 if there are any.
 
@@ -127,9 +127,9 @@ The formatter works on tokens, not a syntax tree, so it keeps your line breaks
 normalizes:
 
 - **Indentation.** 2 spaces per open bracket. Brackets opened on one line only
-  indent once (ex. `f({`), and a line starting w/ a closing bracket lines up w/
+  indent once (ex. `f({`), and a line starting with a closing bracket lines up with
   the line that opened it. Lines continuing an expression (ex. after a line
-  ending in `..` / `&&` / `=`, or starting w/ `..` / `:method()`) are indented
+  ending in `..` / `&&` / `=`, or starting with `..` / `:method()`) are indented
   once more, except directly inside parentheses.
 - **Spacing.** One space around binary operators, `=`, `->`, and `=>`, after
   `,`, and inside `{ }`. None inside `( )` / `[ ]`, around `.`, after unary
@@ -147,7 +147,7 @@ normalizes:
 - **Comments.** `--x` becomes `-- x` (not `---`, `--[[`, etc.), and trailing
   whitespace is removed. Trailing comments get one space after the code, but
   comments on consecutive lines that were aligned (started at the same column)
-  stay aligned: at their original column (shifted w/ any change in the line's
+  stay aligned: at their original column (shifted with any change in the line's
   indentation), or one space after the longest line in the run if the code no
   longer fits.
 

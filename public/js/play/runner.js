@@ -3,7 +3,7 @@
 // terminating the worker and starting a new one.
 //
 // An interactive page's state lives in the worker between clicks, so it
-// goes w/ the worker when it's stopped (or when the code runs again).
+// goes withthe worker when it's stopped (or when the code runs again).
 
 export const TIMEOUT_MS = 5000
 

@@ -1,14 +1,14 @@
-// The Page tab: markup the code returns, rendered in a sandboxed iframe, w/
+// The Page tab: markup the code returns, rendered in a sandboxed iframe, with
 // its clicks (and other actions) working.
 //
 // A page's client script POSTs each action to its server. In the iframe, the
 // bridge answers those requests instead: it hands them to the playground
 // (postMessage), which runs them in the worker, where the page's state
-// lives, and sends back what changed. The iframe is sandboxed w/o
+// lives, and sends back what changed. The iframe is sandboxed without
 // allow-same-origin, so it can only talk to us through messages.
 //
 // The bridge also reports the page's height. On phones the iframe is made that
-// tall, so the page scrolls w/ the playground: an iframe that scrolls on its
+// tall, so the page scrolls withthe playground: an iframe that scrolls on its
 // own is hard to use on a phone (iOS won't scroll it until it's been tapped).
 import { dom } from '/js/vendor/corvid.bundle.js'
 
@@ -38,8 +38,8 @@ const BRIDGE = `<script>(() => {
     }))
   })
 
-  // the page's height, from its content, not the body's: a body w/
-  // min-height: 100vh is as tall as the iframe, so it'd grow w/ it forever
+  // the page's height, from its content, not the body's: a body with
+  // min-height: 100vh is as tall as the iframe, so it'd grow withit forever
   let last = 0
   const report = () => {
     const body = document.body
@@ -78,7 +78,7 @@ export class PageFrame {
 
   /**
    * frame is the iframe (a query). onAction({ req, action, data }) is called
-   * for each action the page sends; answer it w/ reply(req, ...).
+   * for each action the page sends; answer it withreply(req, ...).
    */
   constructor(frame, onAction) {
     this.#frame = new dom.el(frame)
@@ -100,7 +100,7 @@ export class PageFrame {
     this.#frame.style({ height: stacked.matches && this.#height ? `${this.#height}px` : '' })
   }
 
-  // show renders html (or empties the frame, w/o it). It's a new iframe each
+  // show renders html (or empties the frame, without it). It's a new iframe each
   // time: reusing one (ex. setting srcdoc again, often to the same html, and
   // while its tab is hidden) can leave it blank in some browsers. It's hidden
   // until it loads, since an iframe is white while it loads.
@@ -113,7 +113,7 @@ export class PageFrame {
     this.#frame = fresh
   }
 
-  // reply answers an action w/ what changed (html) or an error
+  // reply answers an action withwhat changed (html) or an error
   reply(req, { html, error }) {
     this.#frame.el.contentWindow?.postMessage(
       { type: 'midnight:rpc-result', req, html, error },

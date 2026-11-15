@@ -4,7 +4,7 @@
 //   editor.js    the code, highlighted as you type (highlight.js) and saved
 //   problems.js  the linter (its problems are marked in the editor)
 //   runner.js    runs code in a worker (worker.js), so it can be stopped
-//   page.js      the Page tab: returned markup, w/ its clicks working
+//   page.js      the Page tab: returned markup, withits clicks working
 //   wasm.js      loads midnight.wasm
 //   examples.js  the Examples... menu
 //   share.js     share links

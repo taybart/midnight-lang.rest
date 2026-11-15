@@ -101,7 +101,7 @@ local function nextToken(toks, i) {
 }
 
 local function scanMidnight(code) {
-  -- (on a lex error, ex. a snippet w/ an unterminated string, the tokens
+  -- (on a lex error, ex. a snippet withan unterminated string, the tokens
   -- after it are one plain token, which is fine for a code block)
   local toks = syntax.tokens(code)
   local out = {}
@@ -260,10 +260,10 @@ local function scanJson(s) {
 
 -- rest (hcl) ---------------------------------------------------------------
 
--- heredocs w/ these tags hold code, highlighted as midnight
+-- heredocs withthese tags hold code, highlighted as midnight
 local HEREDOC_CODE = { MIDNIGHT = true, MN = true, LUA = true }
 
--- an hcl string from i (at its `"`), w/ `${...}` interpolations
+-- an hcl string from i (at its `"`), with`${...}` interpolations
 local function hclString(s, i, out) {
   local n = #s
   local j = i + 1

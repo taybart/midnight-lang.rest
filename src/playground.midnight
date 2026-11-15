@@ -3,7 +3,7 @@
 --
 -- The editor is a transparent <textarea> laid over a highlighted copy of its
 -- text, colored by the compiler's own lexer (midnightTokens in the wasm),
--- w/ line numbers beside it. The linter (midnightLint) runs as you type: its
+-- with line numbers beside it. The linter (midnightLint) runs as you type: its
 -- problems mark their lines, and hovering one shows what's wrong.
 --
 -- playground.js imports the other modules in public/js/play. They're preloaded
@@ -32,7 +32,7 @@ local function readExample(file) {
   local f = assert(io.open(path, 'r'), "playground: cannot open {path}")
   local code = f:read('*a')
   f:close()
-  -- named by its first line, w/o the '--'
+  -- named by its first line, without the '--'
   return { name = code:match('^%-%-%s*([^\n]-)%s*\n') || file, code = code }
 }
 

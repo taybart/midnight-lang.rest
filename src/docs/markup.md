@@ -2,7 +2,7 @@
 
 Midnight has JSX style elements for writing HTML, and a small
 runtime (`midnight.markup`) that renders it to HTML: components, scoped styles, and
-(w/ a host that keeps state between requests, like
+(with a host that keeps state between requests, like
 [rest](https://github.com/taybart/rest)'s `page` handlers) interactive pages.
 
 ```midnight
@@ -42,7 +42,7 @@ Markup is part of the language, so there's nothing to enable:
 ```sh
 midnight page.mn                                 # run
 midnight compile .                               # compile to lua (runs on any lua, see Portability)
-midnight compile -markup-factory harmony.h .     # w/ another factory (see below)
+midnight compile -markup-factory harmony.h .     # with another factory (see below)
 ```
 
 ```go
@@ -68,17 +68,17 @@ classic runtime:
 | `<ui.Button/>` | `h(ui.Button, {})` |
 | `<>a {b}</>` | `h(nil, nil, 'a ', b)` |
 
-- **Tags**: lowercase names, and names w/ `-` or `:` (`my-el`, `svg:path`),
+- **Tags**: lowercase names, and names with `-` or `:` (`my-el`, `svg:path`),
   are HTML elements (strings). Capitalized and dotted names are components
   (expressions). A component that's `nil` (ex. not imported) is an error,
-  not an empty fragment: components always get props (`{}` w/o attributes).
-- **Attributes**: names can have `-`, `:`, `.`, and start w/ `@` or `:`
+  not an empty fragment: components always get props (`{}` without attributes).
+- **Attributes**: names can have `-`, `:`, `.`, and start with `@` or `:`
   (`hx-post`, `@click`, `x-on:click.prevent`). Values are midnight strings (so
   `class="btn {kind}"` interpolates), `{expressions}`, or nothing (`true`).
   `{...spread}` merges a table (nil is ignored).
 - **Children**: text, `{expressions}`, and elements. Text is cleaned up like
   JSX: lines are trimmed, whitespace only lines are dropped, and the rest are
-  joined w/ a space. HTML entities (`&nbsp;`, `&mdash;`, `&#123;`, ...) are
+  joined with a space. HTML entities (`&nbsp;`, `&mdash;`, `&#123;`, ...) are
   decoded. `{}` and `{--[[ comments ]]}` are ignored (a `--` comment would
   run to the end of the line, past the `}`).
 - **`<style>` and `<script>`** contain raw text, like HTML: no `{...}`
@@ -93,7 +93,7 @@ classic runtime:
 
 Elements call `h`: whatever `h` is in scope (ex. `local { h } =
 require('midnight.markup')`). If there's no `h`, it's imported automatically (once, at
-the top of the file, like JSX's automatic runtime), so files w/ elements don't
+the top of the file, like JSX's automatic runtime), so files with elements don't
 need any imports.
 
 `-markup-factory name` (`MidnightOptions.MarkupFactory`) uses another function
@@ -102,7 +102,7 @@ instead, ex. `-markup-factory harmony.h` or `-markup-factory React.createElement
 ## Rendering
 
 `render(node)` renders to an HTML string, `document(node)` to a whole page
-(w/ `<!DOCTYPE html>`, scoped styles, and the client script of interactive
+(with `<!DOCTYPE html>`, scoped styles, and the client script of interactive
 pages).
 
 - Text and attribute values are escaped. `raw(html)` is trusted HTML, rendered
@@ -157,7 +157,7 @@ components that are no longer rendered is dropped.
 
 ## Scoped styles
 
-`css(rules)` turns lua tables into css, w/ class names generated from a hash of
+`css(rules)` turns lua tables into css, with class names generated from a hash of
 the rules, and returns the class names by name:
 
 ```midnight
@@ -182,9 +182,9 @@ return <section class={s.card}><h2 class={s.title}>hi</h2></section>
 - Class names (ex. `card-1x9f3k`) only depend on the rules, so they're the same
   in every state and process.
 - `document` puts all the styles in a `<style>` in the `<head>` (adding one to
-  an `<html>` w/o it, or at the start of a page w/o `<html>`). `styles()` returns them, to put them somewhere else (ex. in a shadow
-  root, w/ `render`).
-- A top-level key starting w/ `@` is an at-rule of its own, ex. keyframes:
+  an `<html>` without it, or at the start of a page without `<html>`). `styles()` returns them, to put them somewhere else (ex. in a shadow
+  root, with `render`).
+- A top-level key starting with `@` is an at-rule of its own, ex. keyframes:
   `['@keyframes drift'] = { from = { opacity = 0 }, ['50%'] = { opacity = 1 } }`.
   Its name isn't hashed (so pick one that won't collide), and it isn't
   returned as a class name.
@@ -218,16 +218,16 @@ local { CopyButton } = require('elements')
 return <CopyButton src={url}><button>copy</button></CopyButton>
 ```
 
-- The components render their tag, w/ their props as attributes, and their
+- The components render their tag, with their props as attributes, and their
   children (rendered by the server, so the element can wire them up).
 - A page that uses any of a library's elements loads it once: `document` adds
   a `<script type="module">` to the `<head>` (after any importmap there), which
   imports the library and registers all of its elements. `scripts()` returns
-  them, to put them somewhere else. Pages w/o elements load nothing.
-- A class w/ a static `register(tag)` (ex. a base class that also adds its
-  styles) is registered w/ it, others w/ `customElements.define`. A name the
+  them, to put them somewhere else. Pages without elements load nothing.
+- A class with a static `register(tag)` (ex. a base class that also adds its
+  styles) is registered with it, others with `customElements.define`. A name the
   module doesn't export is an error in the browser's console.
-- Tags have to be valid custom element names (lowercase, w/ a `-`), or
+- Tags have to be valid custom element names (lowercase, with a `-`), or
   `elements` errors. The tag is only named here, so the js doesn't need it.
 - On interactive pages, a library that's only used after an action isn't
   loaded (updates don't run scripts): use one of its elements on the first
@@ -249,8 +249,8 @@ document(mount(() -> <App/>, { rpc = '/actions', headers = { ['X-State'] = id } 
 dispatch(body.id, body.data)
 ```
 
-W/o `rpc`, actions POST to the page's own url (`location.pathname +
-location.search`, as the browser sees it), so the host can handle them w/
+without `rpc`, actions POST to the page's own url (`location.pathname +
+location.search`, as the browser sees it), so the host can handle them with
 the same route as the page, even behind a proxy that rewrites paths.
 
 The host has to run the page and its actions in the same lua state (rest's
@@ -265,20 +265,20 @@ The host has to run the page and its actions in the same lua state (rest's
   data-midnight-target="id">`, matched to `data-midnight` attributes on the page). The
   whole page is sent when something outside of a component changed, when the
   changed component's root is `<html>` / `<head>` / `<body>`, or when there are
-  new styles. Nothing changed is an empty response. A page w/o actions
+  new styles. Nothing changed is an empty response. A page without actions
   never gets updates, so it has no `data-midnight` attributes (and no client
   script).
-- **Morphing**: updates are applied w/
+- **Morphing**: updates are applied with
   [idiomorph](https://github.com/bigskysoftware/idiomorph) (vendored as
   `midnight.markup.idiomorph`, and inlined in the page), so focus, selection, and
   what's being typed survive. Except after a submit: the form's values were
   sent, so its inputs take what the server rendered (ex. `<input name="item"/>`
-  is cleared, `value={st.item}` keeps it), whether it was submitted w/ Enter or
+  is cleared, `value={st.item}` keeps it), whether it was submitted with Enter or
   a button. `mount`'s `morph` option can be a url to load it from instead, or
   `false` to replace elements.
 - **Ordering and errors**: actions are sent one at a time, in order. A 410
   response (ex. the server's state for the page is gone) reloads the page.
-- Pages w/o any actions are static: no client script (`isInteractive()` is
+- Pages without any actions are static: no client script (`isInteractive()` is
   false).
 
 ## Runtime API
@@ -289,7 +289,7 @@ The host has to run the page and its actions in the same lua state (rest's
 |---|---|
 | `h(tag, props, ...)` | element (`tag` string), component (function), or fragment (nil) |
 | `render(node)` | HTML string |
-| `document(node)` | `<!DOCTYPE html>` page, w/ styles (and the client script of interactive pages) |
+| `document(node)` | `<!DOCTYPE html>` page, with styles (and the client script of interactive pages) |
 | `raw(html)` | trusted HTML, rendered as is |
 | `map(list, fn)` | list of `fn(value, index)` |
 | `escape(s)` | HTML escaped string |
@@ -304,7 +304,7 @@ The host has to run the page and its actions in the same lua state (rest's
 | `dispatch(id, data)` | runs an action, returns `{ headers, body }` (what changed) |
 | `isInteractive()` | whether the last render of the mounted page had actions |
 | `session()` | a page of its own (state and actions), for hosts serving many pages from one state (see below) |
-| `s:render(root)` | renders `root()` (or a node) w/ the session's state, actions as `data-mn-<event>="id"` attributes |
+| `s:render(root)` | renders `root()` (or a node) with the session's state, actions as `data-mn-<event>="id"` attributes |
 | `s:rerender()` | renders the last root again (ex. after an action) |
 | `s:dispatch(id, data)` | runs an action of the last render, `false` if there's no such action (stale) |
 | `s:isInteractive()` | whether the session's last render had actions |
@@ -329,12 +329,12 @@ runs actions concurrently has to serialize renders).
 ## Portability
 
 Only the syntax is midnight specific. The runtime is plain lua (5.1 to 5.5,
-LuaJIT), so `midnight compile` output runs anywhere w/ the runtime on
+LuaJIT), so `midnight compile` output runs anywhere with the runtime on
 `package.path`:
 
 ```
 midnight/markup.lua            -- lib/markup.lua
-midnight/markup/idiomorph.lua  -- lib/idiomorph.lua (optional: w/o it, pages load idiomorph from a cdn)
+midnight/markup/idiomorph.lua  -- lib/idiomorph.lua (optional: without it, pages load idiomorph from a cdn)
 ```
 
 midnight preloads both (and compiles them once per process).
@@ -344,5 +344,5 @@ midnight preloads both (and compiles them once per process).
 - `midnight lint` and `midnight fmt` support it (`fmt` keeps elements as
   written).
 - [tree-sitter-midnight](https://github.com/taybart/tree-sitter-midnight) always parses
-  it (w/ highlights, indents, and css / js injected into `<style>` /
+  it (with highlights, indents, and css / js injected into `<style>` /
   `<script>`).

@@ -1,13 +1,13 @@
 // The editor: a transparent <textarea> laid over a highlighted copy of its
-// text, w/ line numbers beside it (see src/playground.midnight). Lines can be
-// marked (ex. w/ the linter's problems): hovering one, or tapping its number,
+// text, withline numbers beside it (see src/playground.midnight). Lines can be
+// marked (ex. withthe linter's problems): hovering one, or tapping its number,
 // shows what's wrong. What you type is saved, so it's there next visit.
 import { dom, ls } from '/js/vendor/corvid.bundle.js'
 import { highlight } from '/js/play/highlight.js'
 
 const STORAGE_KEY = 'playground:code'
 
-// saved is the code from last visit, if any. (localStorage can throw, ex. w/
+// saved is the code from last visit, if any. (localStorage can throw, ex. with
 // site data blocked; the playground works without it.)
 export const saved = () => {
   try {
@@ -63,7 +63,7 @@ export class Editor {
           e.preventDefault()
           onRun()
         } else if (e.code === 'KeyF' && e.shiftKey && e.altKey) {
-          // (e.code: w/ alt, e.key is a different letter on a mac)
+          // (e.code: withalt, e.key is a different letter on a mac)
           e.preventDefault()
           onFormat()
         } else if (e.key === 'Tab' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
@@ -151,7 +151,7 @@ export class Editor {
     this.#markLayer.html(frag)
   }
 
-  // tipAt shows what's wrong w/ the marked line under the pointer, if any
+  // tipAt shows what's wrong withthe marked line under the pointer, if any
   #tipAt(e) {
     const ta = this.#input.el
     const style = getComputedStyle(ta)
@@ -181,7 +181,7 @@ export class Editor {
     this.#tip.el.hidden = true
   }
 
-  // the highlighted copy and the line numbers scroll w/ the textarea
+  // the highlighted copy and the line numbers scroll withthe textarea
   #syncScroll() {
     const ta = this.#input.el
     const pre = this.#highlight.el.parentElement

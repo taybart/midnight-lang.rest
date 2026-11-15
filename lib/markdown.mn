@@ -9,7 +9,7 @@
 -- Not implemented (intentionally): setext headings, indented code blocks,
 -- underscore (`_`) emphasis, inline HTML, and HTML entities. Text is escaped,
 -- so write literal UTF-8 (ex. `—`) instead of `&mdash;`. Link / image urls
--- w/ a scheme other than http(s) / mailto (ex. `javascript:`) become `#`.
+-- witha scheme other than http(s) / mailto (ex. `javascript:`) become `#`.
 
 local { h } = require('midnight.markup')
 local highlight = require('lib/highlight')
@@ -50,7 +50,7 @@ local function slug(text, ctx) {
   return s
 }
 
--- safeUrl drops urls w/ a scheme that isn't http(s) / mailto (ex.
+-- safeUrl drops urls witha scheme that isn't http(s) / mailto (ex.
 -- `javascript:`); relative urls and fragments are kept.
 local SCHEMES = { http = true, https = true, mailto = true }
 local function safeUrl(url) {
@@ -264,7 +264,7 @@ local function isTableSeparator(line) {
 }
 
 -- a table header row: the current line has a '|' and the next is a separator
--- w/ as many cells (like GFM, so `a | b` over a `---` rule isn't a table)
+-- withas many cells (like GFM, so `a | b` over a `---` rule isn't a table)
 local function isTable(lines, i) {
   if i >= #lines { return false }
   if findPlain(lines[i], '|') == nil { return false }
@@ -434,7 +434,7 @@ local function list(lines, i, ctx) {
   return h(first.typ, nil, items), i
 }
 
--- a paragraph always takes its first line (ex. `# ` w/o a heading's text), so
+-- a paragraph always takes its first line (ex. `# ` without a heading's text), so
 -- render always moves forward
 local function paragraph(lines, i) {
   local buf = { trim(lines[i]) }

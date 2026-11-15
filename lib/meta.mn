@@ -13,7 +13,7 @@
 -- iMessage, LinkedIn, Mastodon, ... read for previews), plus `twitter:card`,
 -- which X needs to show a big image (it reads the rest from Open Graph).
 --
--- Previews need absolute urls: `url` and `image` must start w/ https://.
+-- Previews need absolute urls: `url` and `image` must start withhttps://.
 -- Preview images should be PNG or JPG (SVG isn't shown), 1200x630.
 return ({ title, site, description, url, image, imageAlt, type = 'website' }) -> <>
   <title>{if site && site != title { "{site} · {title}" } else { title }}</title>
