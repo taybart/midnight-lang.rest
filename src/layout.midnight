@@ -8,6 +8,7 @@
 -- sets `data-theme` on <html>, so the choice survives navigation.
 local { map, cx } = require('midnight.markup')
 local Meta = require('lib/meta')
+local Moon = require('lib/components/moon')
 
 -- where the site lives, for link previews (they need absolute urls)
 local SITE_URL = 'https://midnight-lang.rest'
@@ -51,29 +52,37 @@ local function pageFor(path) {
   return {}
 }
 
-local Nav = ({ path }) -> {
-  return <> 
-    <script type="module">
-      import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
-      {
-        const menu = new dom.el('#menu-toggle');
-        const sidebar = new dom.el('#sidebar');
-        menu.on('click', () => {
-          sidebar.toggleClass('open')
-          menu.attr('aria-expanded', String(sidebar.hasClass('open')))
-        })
-      }
-    </script>
-    <button 
-      class="menu-toggle" 
-      id="menu-toggle" 
-      title="menu" 
-      aria-label="toggle menu" 
-      aria-expanded="false"
-    >
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span class="bar"></span>
+local Sidebar = ({ path }) -> <>
+   <script type="module">
+    import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
+    {
+      const menu = new dom.el('#menu-toggle');
+      const sidebar = new dom.el('#sidebar');
+      menu.on('click', () => {
+        sidebar.toggleClass('open')
+        menu.attr('aria-expanded', sidebar.hasClass('open'))
+      })
+
+      // auto-hide the mobile top bar: slide out on scroll down, back on up
+      let lastY = window.scrollY
+      dom.onWindow('scroll', () => {
+        const y = window.scrollY
+        if (sidebar.hasClass('open')) { lastY = y; return }
+        if (y > lastY && y > 96) {
+          sidebar.addClass('bar-hidden')
+        } else if (y < lastY) {
+          sidebar.removeClass('bar-hidden')
+        }
+        lastY = y
+      }, { passive: true })
+    }
+  </script>
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/"><Moon/>midnight</a>
+    <button class="menu-toggle" id="menu-toggle" title="menu" aria-label="toggle menu" aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
     </button>
     <nav class="nav" id="nav">
     <ul>
@@ -82,61 +91,13 @@ local Nav = ({ path }) -> {
       </li>)}
     </ul>
     </nav>
-  </>
-}
-
--- Tonight's moon, drawn from how far we are into the current lunar month
--- (the page cache keeps it for an hour, which is plenty for the moon).
-local SYNODIC = 29.530588853 -- days from one new moon to the next
-local KNOWN_NEW_MOON = 947182440 -- 2000-01-06 18:14 UTC
-local PHASES = {
-  'new moon', 'waxing crescent', 'first quarter', 'waxing gibbous',
-  'full moon', 'waning gibbous', 'last quarter', 'waning crescent',
-}
-
--- moonPhase returns how far into the month (0 new, 0.5 full), how much of
--- the face is lit (0 to 1), and the phase's name
-local function moonPhase(now = os.time()) {
-  local frac = ((now - KNOWN_NEW_MOON) / 86400 % SYNODIC) / SYNODIC
-  return (
-    frac,
-    (1 - math.cos(2 * math.pi * frac)) / 2,
-    PHASES[math.floor(frac * 8 + 0.5) % 8 + 1],
-  )
-}
-
--- The lit part is the limb (a half circle on the sun's side: the right while
--- waxing, the left while waning) closed by the terminator, a half ellipse
--- that bulges toward the lit side for a crescent and away from it for a
--- gibbous moon.
-local Moon = () -> {
-  local frac, lit, name = moonPhase()
-  local c, r = 12, 10
-  local rx = r * math.abs(math.cos(2 * math.pi * frac))
-  local waxing = frac < 0.5
-  local crescent = frac < 0.25 || frac > 0.75
-  local limb = if waxing { 1 } else { 0 }
-  local terminator = if waxing == crescent { 0 } else { 1 }
-  local label = "{name}, {lit * 100:%.0f}% lit"
-  return <svg class="moon" viewBox="0 0 24 24" width="22" height="22" role="img" aria-label={label}>
-    <title>{"tonight: {label}"}</title>
-    <circle class="moon-dark" cx={c} cy={c} r={r}/>
-    <path
-      class="moon-lit"
-      d={"M {c} {c - r} A {r} {r} 0 0 {limb} {c} {c + r} A {rx:%.3f} {r} 0 0 {terminator} {c} {c - r} Z"}
-    />
-  </svg>
-}
-
-local Sidebar = ({ path }) -> <aside class="sidebar" id="sidebar">
-  <a class="brand" href="/"><Moon/>midnight</a>
-  <Nav path={path}/>
-  <button class="theme-toggle" id="theme-toggle" title="toggle theme">
-    <span class="icon icon-sun" aria-hidden="true"></span>
-    <span class="icon icon-moon" aria-hidden="true"></span>
-    <span id="theme-label">dawn</span>
-  </button>
-</aside>
+    <button class="theme-toggle" id="theme-toggle" title="toggle theme">
+      <span class="icon icon-sun" aria-hidden="true"></span>
+      <span class="icon icon-moon" aria-hidden="true"></span>
+      <span id="theme-label">dawn</span>
+    </button>
+  </aside>
+</>
 
 return ({ title, path, children, wide }) -> <html>
   <head>
@@ -146,7 +107,7 @@ return ({ title, path, children, wide }) -> <html>
       title={title}
       site="Midnight"
       description={pageFor(path).description}
-      url={SITE_URL .. path}
+      url={"{SITE_URL}{path}"}
       image="{SITE_URL}/img/og.png"
       imageAlt="midnight: a Lua dialect that runs on Go"
     />
@@ -167,7 +128,7 @@ return ({ title, path, children, wide }) -> <html>
       <main class={cx("content", { wide = wide })}>{children}</main>
     </div>
     <script type="module">
-      import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
+      import {dom, style, ls, clipboard} from '/js/vendor/corvid.bundle.js'
       {
         // listen to system theme if nothing set
         if (!ls.get('theme')) style.handleThemeSwitch()
@@ -186,49 +147,28 @@ return ({ title, path, children, wide }) -> <html>
           label.content(names[next()])
           try { ls.set('theme', nt) } catch (e) {}
         })
-
-        // auto-hide the mobile top bar: slide out on scroll down, back on up
-        const sidebar = new dom.el('#sidebar');
-        let lastY = window.scrollY
-        window.addEventListener('scroll', () => {
-          const y = window.scrollY
-          if (sidebar.hasClass('open')) { lastY = y; return }
-          if (y > lastY && y > 96) {
-            sidebar.addClass('bar-hidden')
-          } else if (y < lastY) {
-            sidebar.removeClass('bar-hidden')
-          }
-          lastY = y
-        }, { passive: true })
-
-        // copy buttons (opt-in per code block: ```lang copy)
-        const copyText = (t) => {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(t)
-          }
-          const ta = document.createElement('textarea')
-          ta.value = t
-          ta.style.position = 'fixed'
-          ta.style.opacity = '0'
-          document.body.appendChild(ta)
-          ta.select()
-          document.execCommand('copy')
-          document.body.removeChild(ta)
-          return Promise.resolve()
-        }
+      }
+     </script>
+    <script type="module">
+      import {dom, style, ls, clipboard} from '/js/vendor/corvid.bundle.js'
+      {
         // "Try it" buttons (```midnight try) open the block in the playground
-        document.addEventListener('click', async (e) => {
+        dom.on('click', async (e) => {
           const btn = e.target.closest('.try-btn')
           if (!btn) return
           const code = btn.closest('.code-block').querySelector('code')
+          if (!code) return
+
           const { playgroundUrl } = await import('/js/play/share.js')
-          location.href = await playgroundUrl(code ? code.textContent : '')
+          location.href = await playgroundUrl(code.textContent)
         })
-        document.addEventListener('click', (e) => {
+        // copy buttons (opt-in per code block: ```lang copy)
+        dom.on('click', (e) => {
           const btn = e.target.closest('.copy-btn')
           if (!btn) return
           const code = btn.closest('.code-block').querySelector('code')
-          copyText(code ? code.textContent : '').then(() => {
+          if (!code) return
+          clipboard.copy(code.textContent).then(() => {
             const prev = btn.textContent
             btn.textContent = 'Copied!'
             setTimeout(() => { btn.textContent = prev }, 1500)

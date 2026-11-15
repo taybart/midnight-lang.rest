@@ -11,6 +11,7 @@ locals {
 
 
 server {
+  name      = "midnight-lang.rest"
   address   = ":12000"
   directory = "./public"
 
