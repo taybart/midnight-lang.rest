@@ -1,8 +1,9 @@
 -- highlight.midnight — a tiny syntax highlighter for fenced code blocks.
 --
--- midnight code is split by the compiler's own lexer (`midnight.syntax`), so
--- it's colored the way the compiler reads it, markup included. `sh`, `json`,
--- and `rest` / `hcl` (whose MIDNIGHT heredocs are midnight) have small
+-- midnight and lua are colored by `midnight.syntax`'s highlight (midnight w/
+-- the compiler's own lexer, so it's colored the way the compiler reads it,
+-- markup included), the same classes the playground's editor uses. `sh`,
+-- `json`, and `rest` / `hcl` (whose MIDNIGHT heredocs are midnight) have small
 -- scanners here. Spans are <span class="tok-*">, and token
 -- colors are pure CSS variables (--tok-*), so themes restyle every color in
 -- one place — see site.css.
@@ -18,15 +19,6 @@ local syntax = require('midnight.syntax')
 local M = {}
 
 -- token sets -------------------------------------------------------------
-
-local BUILTIN = {
-  ['print']=1, ['require']=1, ['type']=1, ['tostring']=1, ['tonumber']=1,
-  ['pairs']=1, ['ipairs']=1, ['next']=1, ['select']=1, ['error']=1,
-  ['assert']=1, ['pcall']=1, ['xpcall']=1, ['setmetatable']=1,
-  ['getmetatable']=1, ['rawget']=1, ['rawset']=1, ['rawequal']=1,
-  ['rawlen']=1, ['string']=1, ['table']=1, ['math']=1, ['io']=1,
-  ['os']=1, ['utf8']=1, ['coroutine']=1,
-}
 
 local PUNCT = { ['(']=1, [')']=1, ['[']=1, [']']=1, [';']=1, [':']=1, [',']=1, ['.']=1 }
 
@@ -83,46 +75,19 @@ local function scanNumber(s, i) {
   return j
 }
 
--- midnight ---------------------------------------------------------------
+-- midnight / lua ---------------------------------------------------------
 
--- token kinds from midnight.syntax -> classes (words and symbols are below)
-local CLASS = {
-  keyword = 'tok-keyword', constant = 'tok-const', number = 'tok-number',
-  string = 'tok-string', interp = 'tok-interp', format = 'tok-interp',
-  comment = 'tok-comment', markup = 'tok-punct', tag = 'tok-tag',
-  attr = 'tok-attr',
-}
-
--- the next token after toks[i] that isn't whitespace
-local function nextToken(toks, i) {
-  local t = toks[i + 1]
-  if t && t.kind == 'plain' && t.text:match('^%s*$') { t = toks[i + 2] }
-  return t
-}
-
-local function scanMidnight(code) {
-  -- (on a lex error, ex. a snippet withan unterminated string, the tokens
-  -- after it are one plain token, which is fine for a code block)
-  local toks = syntax.tokens(code)
+-- classed tokens from midnight.syntax (lang: 'midnight' or 'lua')
+local function scanCode(lang, code) {
   local out = {}
-  for i, t in ipairs(toks) {
-    local cls = CLASS[t.kind]
-    if t.kind == 'word' {
-      local nxt = nextToken(toks, i)
-      if BUILTIN[t.text] {
-        cls = 'tok-builtin'
-      } elseif t.text == 'match' && nxt && nxt.kind != 'symbol' {
-        cls = 'tok-keyword' -- (`match` is only a keyword before its value)
-      } elseif nxt && nxt.kind == 'symbol' && nxt.text == '(' {
-        cls = 'tok-function'
-      }
-    } elseif t.kind == 'symbol' {
-      cls = if PUNCT[t.text] || t.text == '{' || t.text == '}' { 'tok-punct' } else { 'tok-operator' }
-    }
-    if cls { span(out, cls, t.text) } else { text(out, t.text) }
+  for _, t in ipairs(syntax.highlight(code, lang)) {
+    if t.class != '' { span(out, 'tok-' .. t.class, t.text) } else { text(out, t.text) }
   }
   return out
 }
+
+local function scanMidnight(code) { return scanCode('midnight', code) }
+local function scanLua(code) { return scanCode('lua', code) }
 
 -- shell ------------------------------------------------------------------
 
@@ -260,8 +225,8 @@ local function scanJson(s) {
 
 -- rest (hcl) ---------------------------------------------------------------
 
--- heredocs withthese tags hold code, highlighted as midnight
-local HEREDOC_CODE = { MIDNIGHT = true, MN = true, LUA = true }
+-- heredocs w/ these tags hold code
+local HEREDOC_CODE = { MIDNIGHT = scanMidnight, MN = scanMidnight, LUA = scanLua }
 
 -- an hcl string from i (at its `"`), with`${...}` interpolations
 local function hclString(s, i, out) {
@@ -324,8 +289,9 @@ local function scanHcl(s) {
       span(out, 'tok-builtin', tag)
       text(out, '\n')
       local body = s:sub(bodyStart, bodyEnd - 1)
-      if HEREDOC_CODE[tag:upper()] {
-        for _, x in ipairs(scanMidnight(body)) { out[#out + 1] = x }
+      local scan = HEREDOC_CODE[tag:upper()]
+      if scan {
+        for _, x in ipairs(scan(body)) { out[#out + 1] = x }
       } else {
         span(out, 'tok-string', body)
       }
@@ -375,6 +341,7 @@ local function scanHcl(s) {
 
 local LANG = {
   midnight = scanMidnight, mn = scanMidnight,
+  lua = scanLua,
   sh = scanSh, bash = scanSh, shell = scanSh, zsh = scanSh,
   json = scanJson,
   rest = scanHcl, hcl = scanHcl,

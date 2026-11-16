@@ -2,7 +2,7 @@
 -- (public/js/play/playground.js does the work; this is just the furniture).
 --
 -- The editor is a transparent <textarea> laid over a highlighted copy of its
--- text, colored by the compiler's own lexer (midnightTokens in the wasm),
+-- text, colored by the compiler (midnightHighlight in the wasm),
 -- with line numbers beside it. The linter (midnightLint) runs as you type: its
 -- problems mark their lines, and hovering one shows what's wrong.
 --
