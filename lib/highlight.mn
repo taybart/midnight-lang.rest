@@ -77,8 +77,10 @@ local function scanNumber(s, i) {
 
 -- midnight / lua ---------------------------------------------------------
 
--- classed tokens from midnight.syntax (lang: 'midnight' or 'lua')
+-- classed tokens from midnight.syntax (lang: 'midnight' or 'lua'), or nil if
+-- the host's midnight predates syntax.highlight (the block is then plain text)
 local function scanCode(lang, code) {
+  if syntax.highlight == nil { return nil }
   local out = {}
   for _, t in ipairs(syntax.highlight(code, lang)) {
     if t.class != '' { span(out, 'tok-' .. t.class, t.text) } else { text(out, t.text) }
@@ -290,8 +292,9 @@ local function scanHcl(s) {
       text(out, '\n')
       local body = s:sub(bodyStart, bodyEnd - 1)
       local scan = HEREDOC_CODE[tag:upper()]
-      if scan {
-        for _, x in ipairs(scan(body)) { out[#out + 1] = x }
+      local toks = scan && scan(body)
+      if toks {
+        for _, x in ipairs(toks) { out[#out + 1] = x }
       } else {
         span(out, 'tok-string', body)
       }
@@ -354,7 +357,7 @@ function M.highlight(lang, code) {
   local fn = LANG[name] -- (an unlabeled block is plain text)
   if fn == nil { return nil }
   local out = fn(code)
-  if #out == 0 { return nil }
+  if out == nil || #out == 0 { return nil }
   return out
 }
 

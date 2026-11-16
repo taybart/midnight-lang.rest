@@ -474,6 +474,7 @@ That's the `Lamp` from [Functions](#functions), plus a field and a
 metamethod. It compiles to the same Lua you'd write by hand:
 
 ```lua
+-- lua
 local Lamp = {}
 Lamp.__index = Lamp
 Lamp.watts = 40

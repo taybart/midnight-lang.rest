@@ -8,7 +8,7 @@
 -- sets `data-theme` on <html>, so the choice survives navigation.
 local { map, cx } = require('midnight.markup')
 local Meta = require('lib/meta')
-local Moon = require('lib/components/moon')
+local Moon = require('components/moon')
 
 -- where the site lives, for link previews (they need absolute urls)
 local SITE_URL = 'https://midnight-lang.rest'
