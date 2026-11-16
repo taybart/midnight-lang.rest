@@ -156,6 +156,8 @@ function Lamp:off() {
 Lamp.new('hallway'):off() -- hallway is dark
 ```
 
+[Classes](#classes) write that boilerplate for you.
+
 Every call needs parentheses, even with a lone string or table argument.
 
 ### Defaults
@@ -444,6 +446,117 @@ pattern when it can tell.
 - For `match` to be an expression, the subject has to be on the same line,
   followed by `{` and an arm. `local m = match` is just a variable.
 
+## Classes
+
+`class` declares a table with methods, a constructor, and the metatable
+wiring that usually goes with them:
+
+```midnight try
+local class Lamp {
+  watts = 40                                -- a field, shared by every lamp
+  new(room, on = true) {                    -- the constructor
+    self.room = room
+    self.on = on
+  }
+  off() {                                   -- a method, with an implicit self
+    self.on = false
+    print("{self.room} is dark")
+  }
+  __tostring() { return "<lamp in the {self.room}>" }
+}
+
+local hall = Lamp.new('hallway')
+hall:off()            -- hallway is dark
+print(hall, hall.watts) -- <lamp in the hallway> 40
+```
+
+That's the `Lamp` from [Functions](#functions), plus a field and a
+metamethod. It compiles to the same Lua you'd write by hand:
+
+```lua
+local Lamp = {}
+Lamp.__index = Lamp
+Lamp.watts = 40
+function Lamp.new(room, on)
+  local self = setmetatable({}, Lamp)
+  if on == nil then on = true end
+  self.room = room
+  self.on = on
+  return self
+end
+function Lamp:off() ... end
+function Lamp:__tostring() ... end
+```
+
+The members:
+
+- `name = value` is a field on the class itself, so every instance sees it
+  until it sets its own. Good for defaults and constants.
+- `name(params) { ... }` is a method, defined as `function Class:name`. The
+  parameters take defaults, destructuring, and `...` like any function's.
+- Metamethods (`__tostring`, `__eq`, `__lt`, ...) are just methods. Define
+  `__index` yourself and it replaces the generated one.
+- `new(params) { ... }` is the constructor, called with a dot:
+  `Lamp.new('attic')`. `self` arrives as a fresh instance and is returned at
+  the end, unless the body ends in a `return` of its own.
+- `static name(params) { ... }` is a function on the class with no `self`,
+  defined as `function Class.name` and called with a dot: `Lamp.parse(s)`.
+  A `static new` is a constructor that builds its instance itself, ex.
+  `return setmetatable({ room = room }, Lamp)`.
+- A class without `new` gets one that takes no arguments and returns an
+  empty instance.
+- Members are separated by newlines. `,` and `;` are allowed too, for a class
+  on one line.
+- `static` is only a keyword before a name, so a field or method called
+  `static` still works.
+
+### Inheritance
+
+`class Child : Parent` looks up anything the child doesn't define on the
+parent. Inside the child, `super` is the parent:
+
+```midnight try
+local class Lamp {
+  new(room) { self.room = room }
+  off() { return "{self.room} is dark" }
+  __tostring() { return "<lamp in the {self.room}>" }
+}
+
+local class NightLight : Lamp {
+  off() { return super.off(self) .. ", except for a little glow" }
+}
+
+local glow = NightLight.new('nursery')
+print(glow:off())  -- nursery is dark, except for a little glow
+print(glow)        -- <lamp in the nursery>
+```
+
+- Call parent methods with a dot and pass `self` yourself:
+  `super.off(self)`. `super:off()` would hand the parent class in as `self`.
+- A subclass without `new` (like `NightLight`) gets one that passes its
+  arguments to the parent's `new` and returns the result as a `NightLight`.
+- A subclass with its own `new` starts from a fresh `self` and doesn't run
+  the parent's constructor. Put shared setup in a method on the parent and
+  call it, ex. `super.init(self, room)`.
+- Metamethods are copied down when the subclass is declared, since Lua looks
+  them up on the metatable itself rather than through `__index`. That's why
+  `print(glow)` works. One added to the parent later isn't copied.
+- The parent can be a dotted name, `class Dimmer : lamps.Lamp`.
+- `super` always means the parent the class was declared with, even if a
+  method has a local of the same name. Outside a subclass it's an ordinary
+  name.
+
+### Declaring classes
+
+`local class`, `global class`, and `module class` work like the other
+[scopes](#scopes). `module class Lamp` exports it, so another file can
+`local { Lamp } = require('lamp')`. A bare `class Lamp` works like a bare
+`function`: it assigns to a `Lamp` already in scope, or to a global.
+
+`class` is only a keyword when a name follows it on the same line, so
+`local class = 'x'`, `t.class`, and `class="..."` on a markup element keep
+working.
+
 ## Markup
 
 Elements are part of the grammar. Each one compiles to a call,
@@ -472,7 +585,7 @@ scoped styles, and pages that update live.
 `if`, `in`, `local`, `module`, `repeat`, `return`, `until`, `while`, `true`,
 `false`, and `nil`.
 
-`goto` and `match` only act as keywords in their own constructs. Lua's
+`goto`, `match`, and `class` only act as keywords in their own constructs. Lua's
 `and`, `or`, `not`, `then`, and `end` aren't reserved at all, so they're
 free to use as names. One nice side effect: a half asleep `if not ready`
 fails to compile instead of doing something odd.
