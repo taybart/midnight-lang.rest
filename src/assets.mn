@@ -1,0 +1,10 @@
+-- Urls of vendored assets, versioned (`?v=`) so a browser w/ an old copy
+-- cached gets the new one.
+
+-- corvid (in the import map, see src/components/head, and the playground's
+-- modulepreload): its ?v= is a hash of the bundle, written by `make corvid`
+module const corvid = '/js/vendor/corvid.bundle.js?v=ce08d58bdd'
+
+-- the playground's compiler (see public/js/play/playground.js): its ?v= is a
+-- hash of the build, written by `make playground`
+module const midnight_wasm = '/js/vendor/midnight.wasm?v=4f22b98ad7'

@@ -252,21 +252,16 @@ dialog.on('click', (ev) => {
 const typing = (el) =>
   el?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')
 
-dom.onWindow('keydown', (ev) => {
-  const k = ev.key.toLowerCase()
-  if (k === 'k' && (ev.metaKey || ev.ctrlKey) && !ev.altKey && !ev.shiftKey) {
-    ev.preventDefault()
-    dialog.el.open ? close() : open()
-  } else if (
-    ev.key === '/' &&
-    !dialog.el.open &&
-    !typing(ev.target) &&
-    !ev.metaKey &&
-    !ev.ctrlKey
-  ) {
-    ev.preventDefault()
-    open()
-  }
+// (⌘K / Ctrl+K would otherwise focus the browser's own search, ex. Firefox's)
+dom.onKey('k', ({ meta, ctrl, alt, shift, ev }) => {
+  if (!(meta || ctrl) || alt || shift) return
+  ev.preventDefault()
+  dialog.el.open ? close() : open()
+})
+dom.onKey('/', ({ meta, ctrl, ev }) => {
+  if (dialog.el.open || typing(ev.target) || meta || ctrl) return
+  ev.preventDefault()
+  open()
 })
 
 for (const btn of dom.els('[data-search-open]')) {

@@ -2,7 +2,7 @@
 // (midnightHighlight, from the wasm instance on the main thread, see wasm.js):
 // the same classes as the docs' code blocks (lib/highlight.mn), from the same
 // rules (parse.HighlightCode in midnight).
-import { dom } from '/js/vendor/corvid.bundle.js'
+import { dom } from '@taybart/corvid'
 
 // (text, not content: this is the user's code, '<' and all)
 const span = (cls, s) => dom.create({ tag: 'span', class: cls, text: s })

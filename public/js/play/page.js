@@ -10,7 +10,7 @@
 // The bridge also reports the page's height. On phones the iframe is made that
 // tall, so the page scrolls withthe playground: an iframe that scrolls on its
 // own is hard to use on a phone (iOS won't scroll it until it's been tapped).
-import { dom } from '/js/vendor/corvid.bundle.js'
+import { dom } from '@taybart/corvid'
 
 const RPC_PATH = '/__midnight_rpc__' // (the rpc url the wasm mounts pages with)
 const BRIDGE = `<script>(() => {

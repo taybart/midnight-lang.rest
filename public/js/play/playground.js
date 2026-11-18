@@ -8,7 +8,7 @@
 //   wasm.js      loads midnight.wasm
 //   examples.js  the Examples... menu
 //   share.js     share links
-import { dom, clipboard } from '/js/vendor/corvid.bundle.js'
+import { dom, clipboard } from '@taybart/corvid'
 import { Editor, saved } from '/js/play/editor.js'
 import { lint } from '/js/play/problems.js'
 import { highlightLua } from '/js/play/highlight.js'
@@ -219,7 +219,9 @@ const initialCode = async () => {
 
 const boot = async () => {
   editor.set(await initialCode())
-  const module = await loadWasm('/js/vendor/midnight.wasm')
+  // (versioned, from src/assets: see data-wasm in src/playground.midnight)
+  const wasm = new dom.el('.playground').data('wasm') || '/js/vendor/midnight.wasm'
+  const module = await loadWasm(wasm)
   await start(module)
   runner = new Runner(module, handlers)
   editor.refresh() // (highlighted, now that the lexer is here)

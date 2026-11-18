@@ -11,12 +11,12 @@
 local { map, cx } = require('midnight.markup')
 
 -- the site's own source (it's written in midnight, served by rest)
-local SITE_SOURCE = 'https://github.com/taybart/midnight-lang.rest'
+const SITE_SOURCE = 'https://github.com/taybart/midnight-lang.rest'
 local Moon = require('src/components/moon')
 local Head = require('src/components/head')
 
 -- the nav, and each page's link preview text (see src/pages)
-local pages = require('src/pages')
+local pages = require('src/pages').list
 
 -- a magnifying glass (stroked with the text color)
 local SearchIcon = () -> <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round">

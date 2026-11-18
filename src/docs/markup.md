@@ -84,6 +84,12 @@ classic runtime:
 - **`<style>` and `<script>`** contain raw text, like HTML: no `{...}`
   expressions, whitespace cleanup, or entities, so css / js can be written as
   is.
+- **JSON scripts**: a `<script type="application/json">` holds one
+  `{expression}`, encoded as JSON when it's rendered, so a page can hand data
+  to its js (`<script type="application/json" id="d">{data}</script>`, or
+  `<Data id="d" value={data}/>`). A `<script type="importmap">` can too (ex.
+  `{{ imports = { ['@lib'] = LIB_URL } }}`, to share a versioned url with a
+  `modulepreload`), or hold JSON text, which is kept as is.
 - **Where elements start**: a `<` followed by a name (or `>`) starts an element
   wherever an expression can start, so after a name, number, string, `)`,
   `]`, or `}` it's still a comparison (`a < b`, `f()<2`, `t[1]<3`).

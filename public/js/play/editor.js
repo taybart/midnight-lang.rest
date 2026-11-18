@@ -2,7 +2,7 @@
 // text, withline numbers beside it (see src/playground.midnight). Lines can be
 // marked (ex. withthe linter's problems): hovering one, or tapping its number,
 // shows what's wrong. What you type is saved, so it's there next visit.
-import { dom, ls } from '/js/vendor/corvid.bundle.js'
+import { dom, ls } from '@taybart/corvid'
 import { highlight } from '/js/play/highlight.js'
 
 const STORAGE_KEY = 'playground:code'

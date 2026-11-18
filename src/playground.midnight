@@ -15,6 +15,7 @@
 -- <template>s for examples.js; they only ever run in the browser.
 
 local { map } = require('midnight.markup')
+local assets = require('src/assets')
 
 -- the menu, in order (examples/<file>.mn)
 local EXAMPLES = {
@@ -36,7 +37,7 @@ local function read_example(file) {
   return { name = code:match('^%-%-%s*([^\n]-)%s*\n') || file, code = code }
 }
 
-return () -> <div class="playground">
+return () -> <div class="playground" data-wasm={assets.midnight_wasm}>
   <div class="pg-grid">
     <div class="pg-toolbar">
       <button id="pg-run" class="pg-run" type="button" title="run (ctrl / cmd + enter)" disabled>Run</button>
@@ -90,7 +91,7 @@ return () -> <div class="playground">
     local ex = read_example(file)
     return <template class="pg-example" data-name={ex.name}>{ex.code}</template>
   })}
-  <link rel="modulepreload" href="/js/vendor/corvid.bundle.js"/>
+  <link rel="modulepreload" href={assets.corvid}/>
   <link rel="modulepreload" href="/js/play/editor.js"/>
   <link rel="modulepreload" href="/js/play/highlight.js"/>
   <link rel="modulepreload" href="/js/play/problems.js"/>

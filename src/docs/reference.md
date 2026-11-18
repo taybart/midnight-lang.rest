@@ -232,7 +232,7 @@ local function bounds(list) {
 
 ## Scopes
 
-`local` is Lua's local. Midnight adds two more ways to declare a name.
+`local` is Lua's local. Midnight adds three more ways to declare a name.
 
 ### global
 
@@ -274,6 +274,48 @@ local { dim } = require('lamp')  -- or import just what you need
 hand). Two rules: such a file can't also `return` at the top level, because
 then it's unclear which value is the module, and the word `module` is taken,
 so Lua 5.1's `module()` function isn't callable.
+
+### const
+
+`const` is a local that can't be assigned again. That's checked when the code
+compiles, and it becomes a plain `local`:
+
+```midnight try
+const greeting = 'hello'
+const { floor, max } = math        -- destructures too
+
+local function shout() {
+  local greeting = 'HEY'           -- a new local is fine
+  greeting ..= '!'
+  return greeting
+}
+
+print(greeting, shout(), floor(max(1.5, 2.5)))
+-- greeting = 'bye'                -- error: cannot assign to const 'greeting'
+```
+
+Any assignment is an error: `=`, `+=` and friends, a bare `function greeting()`,
+and assignments from inside closures. `module const` makes a const export,
+which also can't be changed with `module.x = ...` (another file can still
+change the field on the module's table).
+
+A table written right there is frozen too, nested tables included, so
+`const` doesn't hand you a "constant" you can still change:
+
+```midnight try
+const cfg = { port = 8080, db = { host = 'localhost' } }
+print(cfg.db.host)
+cfg.db.host = 'x'                  -- attempt to modify a read-only table
+```
+
+Only literals are frozen: `const t = make()` makes the name const, but
+leaves the table alone, since other code might have it (think
+`const json = require('json')`). For a table you'll fill in, use `local`.
+`table.freeze(t)` freezes any table yourself (and returns it), and
+`table.isfrozen(t)` checks.
+
+`const` needs a value, and is only a keyword when a name or destructure
+follows it, so code using `const` as a name keeps working.
 
 ## Operators
 
@@ -691,7 +733,7 @@ scoped styles, and pages that update live.
 `if`, `in`, `local`, `module`, `repeat`, `return`, `until`, `while`, `true`,
 `false`, and `nil`.
 
-`goto`, `match`, `class`, and `catch` only act as keywords in their own constructs. Lua's
+`goto`, `match`, `class`, `catch`, and `const` only act as keywords in their own constructs. Lua's
 `and`, `or`, `not`, `then`, and `end` aren't reserved at all, so they're
 free to use as names. One nice side effect: a half asleep `if not ready`
 fails to compile instead of doing something odd.

@@ -2,63 +2,74 @@ config { default_language = "midnight" }
 
 locals {
   cache_ttl = "1h"
-  handler   = <<-MIDNIGHT
+
+  # The docs' pages, in nav order: each one's path, title, link preview text
+  # (description), and its markdown in src/docs (file; "" for the playground,
+  # which has its own handler). Scripts get them through kv (see src/pages),
+  # for the nav, link previews, and the search index. (a list, not an object:
+  # through kv, an object is a lua table w/o an order)
+  pages = [
+    {
+      path        = "/", title = "Introduction", file = "index.md",
+      description = "Midnight is a Lua dialect that runs on Go: braces, defaults, destructuring, string interpolation, match, and HTML markup, compiling to plain Lua.",
+    },
+    {
+      path        = "/getting-started", title = "Getting Started", file = "getting-started.md",
+      description = "Install the midnight CLI, run and compile scripts, and embed Midnight in Go programs.",
+    },
+    {
+      path        = "/reference", title = "Reference", file = "reference.md",
+      description = "The Midnight language, one feature at a time: strings, tables, destructuring, functions, scopes, operators, match, if expressions, catch, and classes.",
+    },
+    {
+      path        = "/from-lua", title = "Coming from Lua", file = "from-lua.md",
+      description = "What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.",
+    },
+    {
+      path        = "/markup", title = "Markup", file = "markup.md",
+      description = "HTML-style markup in Midnight: components, state, scoped styles, and interactive pages served by rest.",
+    },
+    {
+      path        = "/tools", title = "Tools", file = "tools.md",
+      description = "midnight compile, clean, lint, and fmt: what they do, their rules, and their output.",
+    },
+    {
+      path        = "/playground", title = "Playground", file = "",
+      description = "Write and run Midnight in your browser, clickable pages included. Nothing to install.",
+    },
+  ]
+
+
+  # a docs page, rendered from its markdown. tmpl only fills in `{{.path}}`,
+  # inside a string, so this stays valid midnight (for the editor too); the
+  # page itself comes from kv.
+  docs_page = <<-MIDNIGHT
     local Layout = require('src/layout')
     local md = require('lib/markdown')
-    local doc = md.page('src/docs/{{.file}}')
-    return <Layout path="{{.path}}" title="{{.title}}" toc={doc.headings}>{doc.blocks}</Layout>
+    local page = require('src/pages').find('{{.path}}')
+    local doc = md.page("src/docs/{page.file}")
+    return <Layout path={page.path} title={page.title} toc={doc.headings}>{doc.blocks}</Layout>
   MIDNIGHT
 }
-
 
 server {
   name      = "midnight-lang.rest"
   address   = ":12000"
   directory = "./public"
 
-  handler "GET" "/{$}" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/",
-      title = "Introduction",
-      file  = "index.md"
-    })
+  # (what scripts read w/ kv.get, see src/pages)
+  kv = {
+    pages = locals.pages
   }
 
-  handler "GET" "/getting-started" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/getting-started",
-      title = "Getting Started",
-      file  = "getting-started.md"
-    })
-  }
-
-  handler "GET" "/reference" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/reference",
-      title = "Reference",
-      file  = "reference.md"
-    })
-  }
-
-  handler "GET" "/from-lua" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/from-lua",
-      title = "Coming from Lua",
-      file  = "from-lua.md"
-    })
-  }
-
-  handler "GET" "/markup" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/markup",
-      title = "Markup",
-      file  = "markup.md"
-    })
+  # a handler per docs page (the pages with markdown), from locals.pages
+  dynamic "handler" {
+    for_each = [for p in locals.pages : p if p.file != ""]
+    labels   = ["GET", handler.value.path == "/" ? "/{$}" : handler.value.path]
+    content {
+      cache = locals.cache_ttl
+      page  = tmpl(locals.docs_page, { path = handler.value.path })
+    }
   }
 
   handler "GET" "/playground" {
@@ -71,24 +82,10 @@ server {
   }
 
   # the search index (see src/search and public/js/search.js): built once per
-  # cache_ttl, then searched in the browser
+  # cache_ttl, then searched in the browser. (the pages come from kv, so
+  # nothing is templated in)
   handler "GET" "/search.json" {
     cache = locals.cache_ttl
-    fn = <<-MIDNIGHT
-      return {
-        status = 200,
-        headers = { ["Content-Type"] = "application/json" },
-        body = json.encode(require('src/search')()),
-      }
-    MIDNIGHT
-  }
-
-  handler "GET" "/tools" {
-    cache = locals.cache_ttl
-    page = tmpl(locals.handler, {
-      path  = "/tools",
-      title = "Tools",
-      file  = "tools.md"
-    })
+    fn    = read("./src/search.mn")
   }
 }

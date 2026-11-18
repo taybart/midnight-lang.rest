@@ -7,7 +7,7 @@
 -- title, title the section's heading (the page's title for its h1), text the
 -- section's prose and code its code blocks, as plain text.
 local md = require('lib/markdown')
-local pages = require('src/pages')
+local pages = require('src/pages').list
 
 local function read(path) {
   local f = assert(io.open(path, 'r'), 'search: cannot open ' .. path)
@@ -16,28 +16,31 @@ local function read(path) {
   return src
 }
 
-return () -> {
-  local entries = {}
-  for _, page in ipairs(pages) {
-    if !page.file { -- (ex. the playground: just the page, by its description)
-      entries[#entries + 1] = {
-        page = page.title, url = page.path, title = page.title, level = 1,
-        text = page.description, code = '',
-      }
-      continue
+local entries = {}
+for _, page in ipairs(pages) {
+  if !page.file || page.file == '' { -- (ex. the playground: just the page, by its description)
+    entries[#entries + 1] = {
+      page = page.title, url = page.path, title = page.title, level = 1,
+      text = page.description, code = '',
     }
-    for _, sec in ipairs(md.sections(read('src/docs/' .. page.file))) {
-      local top = sec.level == 1
-      entries[#entries + 1] = {
-        page = page.title,
-        url = if top { page.path } else { "{page.path}#{sec.id}" },
-        title = if top { page.title } else { sec.title },
-        level = sec.level,
-        -- (a page's intro also matches its description)
-        text = if top { "{page.description} {sec.text}" } else { sec.text },
-        code = sec.code,
-      }
+    continue
+  }
+  for _, sec in ipairs(md.sections(read("src/docs/{page.file}"))) {
+    local top = sec.level == 1
+    entries[#entries + 1] = {
+      page = page.title,
+      url = if top { page.path } else { "{page.path}#{sec.id}" },
+      title = if top { page.title } else { sec.title },
+      level = sec.level,
+      -- (a page's intro also matches its description)
+      text = if top { "{page.description} {sec.text}" } else { sec.text },
+      code = sec.code,
     }
   }
-  return entries
+}
+
+return {
+  status = 200,
+  headers = { ['Content-Type'] = 'application/json' },
+  body = json.encode(entries),
 }
