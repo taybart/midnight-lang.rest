@@ -39,24 +39,134 @@ for _, who in ipairs({ 'room', 'moon', 'cow jumping over the moon' }) {
 }
 ```
 
-## Modules
+## Your first program
 
-`require('name')` finds `name.mn` as well as `name.lua`, and Midnight and Lua
-modules can require each other freely, since both compile to the same
-bytecode. Export with `module` (see [Scopes](/reference#scopes)):
+Let's build something a bit bigger: a sleep log that reports how you're
+doing. It only uses the everyday parts of Midnight, the ones you'll use in
+every file. (Every example with a **Try it** button runs in the
+[playground](/playground).)
+
+### Functions and loops
+
+Blocks are braces, and that's most of the difference from Lua:
+
+```midnight try
+local nights = { 7.5, 6, 8, 4.5, 7 }
+
+local function average(list) {
+  local sum = 0
+  for _, n in ipairs(list) {
+    sum += n
+  }
+  return sum / #list
+}
+
+print(average(nights)) -- 6.6
+```
+
+There's no `then`, `do`, or `end`, and `sum += n` saves writing `sum` twice.
+Everything else (`local`, `ipairs`, `#list`) is plain Lua.
+
+### Defaults and interpolation
+
+A parameter can have a default, used when the argument is `nil`. Double
+quoted strings fill in `{expressions}`, and `{value:%.1f}` formats one like
+`string.format`:
+
+```midnight try
+local function report(hours, goal = 8) {
+  local short = goal - hours
+  if short > 0 {
+    return "{hours:%.1f}h a night, {short:%.1f}h short of {goal}"
+  }
+  return "{hours:%.1f}h a night, goal met"
+}
+
+print(report(6.6))     -- 6.6h a night, 1.4h short of 8
+print(report(6.6, 6))  -- 6.6h a night, goal met
+```
+
+Single quoted strings don't interpolate, so `'{this}'` stays as written.
+
+### Tables, arrows, and destructuring
+
+Anonymous functions are arrows, and `local { a, b } = t` (or a loop
+variable written the same way) pulls fields out of a table:
+
+```midnight try
+local log = {
+  { day = 'mon', hours = 7.5 },
+  { day = 'tue', hours = 6 },
+  { day = 'wed', hours = 8 },
+  { day = 'thu', hours = 4.5 },
+}
+
+table.sort(log, (a, b) -> a.hours > b.hours)
+
+for i, { day, hours } in ipairs(log) {
+  print("{i}. {day}: {hours}h")
+}
+```
+
+### Split it into modules
+
+`module` exports a name. A file with `module` declarations returns them as a
+table, so there's no `local M = {} ... return M`:
 
 ```midnight
--- dreams.mn
-module function recall(n = 1) {
-  return "you remember {n} dream(s)"
+-- sleep.mn
+module function average(list) {
+  local sum = 0
+  for _, n in ipairs(list) { sum += n }
+  return sum / #list
+}
+
+module function report(hours, goal = 8) {
+  local short = goal - hours
+  if short > 0 {
+    return "{hours:%.1f}h a night, {short:%.1f}h short of {goal}"
+  }
+  return "{hours:%.1f}h a night, goal met"
 }
 ```
 
 ```midnight
 -- main.mn
-local { recall } = require('dreams')
-print(recall(2)) -- you remember 2 dream(s)
+local { average, report } = require('sleep')
+
+local log = {
+  { day = 'mon', hours = 7.5 },
+  { day = 'tue', hours = 6 },
+  { day = 'wed', hours = 8 },
+  { day = 'thu', hours = 4.5 },
+}
+
+local hours = {}
+for _, night in ipairs(log) {
+  hours[#hours + 1] = night.hours
+}
+
+print(report(average(hours)))
 ```
+
+```sh
+midnight main.mn   # 6.5h a night, 1.5h short of 8
+```
+
+`require('sleep')` finds `sleep.mn` as well as `sleep.lua`, and Midnight and
+Lua modules can require each other freely, since both compile to the same
+bytecode.
+
+### Where next
+
+That's enough Midnight to write real programs. From here:
+
+- **You know Lua well:** [Coming from Lua](/from-lua) is the short version,
+  what Midnight saves you from writing, and what will trip you up.
+- **You want to build a web app:** [Markup](/markup) is HTML in the language,
+  rendered on the server, with interactive pages and no JavaScript toolchain.
+- **You want everything:** the [Reference](/reference) covers the whole
+  language, including `match`, `catch`, `const`, and classes.
 
 ## Compile
 
@@ -131,4 +241,4 @@ and `fmt` in detail.
 - **Anything with tree-sitter**:
   [tree-sitter-midnight](https://github.com/taybart/tree-sitter-midnight).
 
-[Next: the language reference](/reference)
+[Next: coming from Lua](/from-lua)

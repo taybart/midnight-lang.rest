@@ -15,19 +15,19 @@ locals {
     },
     {
       path        = "/getting-started", title = "Getting Started", file = "getting-started.md",
-      description = "Install the midnight CLI, run and compile scripts, and embed Midnight in Go programs.",
-    },
-    {
-      path        = "/reference", title = "Reference", file = "reference.md",
-      description = "The Midnight language, one feature at a time: strings, tables, destructuring, functions, scopes, operators, match, if expressions, catch, and classes.",
+      description = "Install the midnight CLI, write a first program, compile to Lua, and embed Midnight in Go programs.",
     },
     {
       path        = "/from-lua", title = "Coming from Lua", file = "from-lua.md",
-      description = "What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.",
+      description = "What Midnight saves Lua programmers from writing (defaults, catch, match, classes, const, interpolation), and the differences that trip you up.",
     },
     {
       path        = "/markup", title = "Markup", file = "markup.md",
-      description = "HTML-style markup in Midnight: components, state, scoped styles, and interactive pages served by rest.",
+      description = "Server-rendered web apps without the JavaScript toolchain: HTML in the language, components, scoped styles, and interactive pages served by rest.",
+    },
+    {
+      path        = "/reference", title = "Reference", file = "reference.md",
+      description = "The whole Midnight language: Lua's features in Midnight's syntax, then what's beyond Lua (match, if expressions, catch, const, classes, and markup).",
     },
     {
       path        = "/tools", title = "Tools", file = "tools.md",

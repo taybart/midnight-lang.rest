@@ -347,10 +347,12 @@ local function heading(lines, i, ctx) {
   if !level || #level > 6 { return nil, i }
   text = trim(text:gsub('%s+#+%s*$', ''))
   local id = slug(text, ctx)
-  -- (h2 / h3 make the table of contents, see page)
-  if #level == 2 || #level == 3 {
+  -- (h2 / h3 make the table of contents, see page, and so do h1s after the
+  -- first, which split a page into parts)
+  if #level == 2 || #level == 3 || #level == 1 && ctx.titled {
     ctx.headings[#ctx.headings + 1] = { level = #level, id = id, children = inline(text) }
   }
+  if #level == 1 { ctx.titled = true }
   return h('h' .. #level, { id = id }, inline(text)), i + 1
 }
 
@@ -602,8 +604,9 @@ module function sections(src) {
 }
 
 -- page(path) -> { blocks, headings }: the rendered blocks, and the h2 / h3
--- headings in order, each { level, id, children } (children: the heading's
--- inline markup), for a table of contents.
+-- headings in order (and h1s after the page's title: its parts), each
+-- { level, id, children } (children: the heading's inline markup), for a
+-- table of contents.
 module function page(path) {
   local ctx = { slugs = {}, headings = {} }
   return { blocks = render_blocks(read(path), ctx), headings = ctx.headings }

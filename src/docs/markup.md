@@ -1,9 +1,12 @@
 # Markup
 
-Midnight has JSX style elements for writing HTML, and a small
-runtime (`midnight.markup`) that renders it to HTML: components, scoped styles, and
-(with a host that keeps state between requests, like
-[rest](https://github.com/taybart/rest)'s `page` handlers) interactive pages.
+Server-rendered web apps, with the comforts of JSX and none of the
+JavaScript toolchain. HTML is part of Midnight's syntax, so components are
+functions and templates are code: no template language to learn, no build
+step, no `node_modules`. A small runtime (`midnight.markup`) renders it, with
+components, scoped styles, and (with a host that keeps state between
+requests, like [rest](https://github.com/taybart/rest)'s `page` handlers)
+interactive pages whose click handlers run on the server.
 
 ```midnight
 local { css, state } = require('midnight.markup')

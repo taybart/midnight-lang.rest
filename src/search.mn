@@ -25,8 +25,8 @@ for _, page in ipairs(pages) {
     }
     continue
   }
-  for _, sec in ipairs(md.sections(read("src/docs/{page.file}"))) {
-    local top = sec.level == 1
+  for i, sec in ipairs(md.sections(read("src/docs/{page.file}"))) {
+    local top = i == 1 && sec.level == 1 -- (the page's title, not a part's)
     entries[#entries + 1] = {
       page = page.title,
       url = if top { page.path } else { "{page.path}#{sec.id}" },

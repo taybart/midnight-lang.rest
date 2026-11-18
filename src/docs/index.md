@@ -5,8 +5,9 @@ A Lua dialect that runs on Go, for the late shift.
 Midnight is Lua after hours: the same small, honest language, with braces
 instead of `end`, symbols instead of keywords, and a few comforts Lua never
 got around to (parameter defaults, destructuring, string interpolation,
-`match`, and HTML-style markup). It runs inside Go programs, or compiles to
-plain Lua when it's time to ship.
+`match`, and HTML-style markup). It runs inside Go programs, compiles to
+plain Lua when it's time to ship, and with [rest](https://github.com/taybart/rest)
+serves server-rendered web apps.
 
 ```midnight try
 local function count_sheep(name = 'night owl', ...sheep) {
@@ -27,84 +28,36 @@ print(count_sheep(nil, 'dolly', 'shaun', 'timmy'))
 -- fast asleep
 ```
 
-## A quick tour
+## Two reasons to be up this late
 
-If you know Lua, you already know most of Midnight. Here's what's new.
+### A more comfortable Lua
 
-### Braces and symbols
-
-Blocks use `{ }`. Logic uses `&&`, `||`, and `!`, and "not equal" is `!=`.
-Every binary operator has an assignment form.
-
-```midnight
-local stars = 0
-while stars < 3 && !dawn {
-  stars += 1
-}
-```
-
-### Defaults, varargs, and arrows
-
-Any parameter can have a default, varargs can have a name, and anonymous
-functions are arrows.
-
-```midnight try
-local function dream(about = 'electric sheep', ...details) {
-  return "dreaming of {about} ({#details} details)"
-}
-
-local yawn = (n) -> string.rep('a', n)
-print("y{yawn(5)}wn") -- yaaaaawn
-```
-
-### Interpolation
-
-Double quoted and block strings interpolate `{expressions}`, and
-`{expr:%spec}` formats them with `string.format`.
-
-```midnight try
-local hours = 7.5
-print("slept {hours:%.1f} hours") -- slept 7.5 hours
-print('single quotes stay {literal}') -- single quotes stay {literal}
-```
-
-### Destructuring
+Lua is small, fast, embeddable, and a joy, right up until the fifth
+`x = x or default`, the `pcall` that returns its error where the result
+should be, or the `and` / `or` ternary that quietly breaks on `false`.
+Midnight fixes the chores without leaving Lua: braces instead of `end`,
+defaults, destructuring, interpolation, `catch`, `match`, and classes, each
+compiling to the Lua you'd have written by hand. Lua modules work unchanged,
+in both directions.
 
 ```midnight
-local { moon, stars = 0 } = sky
-local [ first, second ] = { 'dusk', 'dark' }
+local { floor } = math
+local cfg = load_config(path) catch DEFAULTS
+local mood = if cfg.late { 'sleepy' } else { 'awake' }
+print("{cfg.name} is {mood}, {floor(cfg.hours)}h in")
 ```
 
-### match, and if as a value
+Start with [Getting Started](/getting-started), or if Lua is already second
+nature, [Coming from Lua](/from-lua) shows what you stop writing.
 
-```midnight
-local greeting = if hour < 5 { 'go back to bed' } else { 'good morning' }
+### Web apps without the JavaScript toolchain
 
-local phase = match day % 28 {
-  0 => { 'new moon' }
-  14 => { 'full moon' }
-  _ => { 'somewhere in between' }
-}
-```
-
-### Markup
-
-HTML is part of the language. Elements compile to plain function calls, and
-the `midnight.markup` runtime renders them, with components, scoped styles,
-and interactive pages.
-
-```midnight
-local Moon = ({ phase }) -> <span class="moon">{phase}</span>
-
-return <p>tonight's moon: <Moon phase="waxing"/></p>
-```
-
-## Serve it with rest
-
-[rest](https://github.com/taybart/rest) is the other half of the stack: an
-HTTP client, mock server, and page server driven by `.rest` files. Its `page`
-handlers run Midnight on the server and keep each visitor's state between
-clicks, so this is a complete interactive app:
+Want components and JSX, but not `node_modules`, a bundler, and a JavaScript
+server to run it all? HTML is part of Midnight's syntax, and
+[rest](https://github.com/taybart/rest) serves it from one Go binary. Pages
+render on the server, click handlers run on the server, and only the parts of
+the page that changed are sent back. Think Go templates with real
+components, or JSX with no build step.
 
 ```rest
 # night.rest
@@ -146,8 +99,10 @@ return ({ owl }) -> {
 rest -f night.rest -s
 ```
 
-The click handler runs on the server, and only the parts of the page that
-changed are sent back. This site is served the same way.
+That's the whole app: no build, no client framework, one file to deploy
+next to the binary. Components, scoped styles, and state are in
+[Markup](/markup), and this site is served the same way. In fact, 
+[this site runs on the stuff](https://github.com/taybart/midnight-lang.rest)
 
 ## Why Midnight
 
@@ -180,13 +135,14 @@ the symbol operators, defaults, destructuring, arrow functions, `global` and
 `module`. Erde's idea that a nicer Lua should still teach you Lua is the
 whole foundation here. Midnight accepts Erde's language and is tested against
 the Erde compiler's own spec suite, then adds a few things for its own night
-shift (`match`, if expressions, `catch`, formats, markup) and a Go runtime to run it
+shift (`match`, if expressions, `catch`, `const`, classes, formats, markup) and a Go runtime to run it
 all on. If you want Lua with braces and don't need Go, go say hi to Erde.
 
 ## Explore
 
-- [Getting Started](/getting-started): install, run, compile, and embed in Go.
+- [Getting Started](/getting-started): install, a first program, compiling,
+  and embedding in Go.
+- [Coming from Lua](/from-lua): what you stop writing, and the sharp edges.
+- [Markup](/markup): server-rendered pages, components, styles, and state.
 - [Reference](/reference): the whole language, one feature at a time.
-- [Coming from Lua](/from-lua): what's different, and the sharp edges.
-- [Markup](/markup): elements, components, styles, and interactive pages.
 - [Tools](/tools): `compile`, `clean`, `lint`, and `fmt`.

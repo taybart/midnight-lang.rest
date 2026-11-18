@@ -1,0 +1,3 @@
+*.rest linguist-language=hcl
+*.mn linguist-language=lua
+*.midnight linguist-language=lua
