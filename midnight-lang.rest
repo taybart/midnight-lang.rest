@@ -54,7 +54,7 @@ locals {
 
 server {
   name      = "midnight-lang.rest"
-  address   = ":12000"
+  address   = "localhost:12000"
   directory = "./public"
 
   # (what scripts read w/ kv.get, see src/pages)
