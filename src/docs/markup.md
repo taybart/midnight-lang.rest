@@ -164,8 +164,8 @@ the rules, and returns the class names by name:
 local s = css({
   card = {
     padding = '1rem',
-    backgroundColor = '#222',              -- or background_color
-    ['&:hover'] = { borderColor = 'gold' },  -- `&` is the class
+    background_color = '#222',             -- or backgroundColor
+    ['&:hover'] = { border_color = 'gold' }, -- `&` is the class
     ['&.big, &:focus'] = { padding = '2rem' },
     ['$title'] = { margin = 0 },           -- `$name` is another class from this css()
     img = { width = '100%' },              -- descendants
@@ -177,7 +177,7 @@ local s = css({
 return <section class={s.card}><h2 class={s.title}>hi</h2></section>
 ```
 
-- Property names in camelCase or snake_case become kebab-case. Values are used
+- Property names in snake_case or camelCase become kebab-case. Values are used
   as is (`2` is `2`, not `2px`).
 - Class names (ex. `card-1x9f3k`) only depend on the rules, so they're the same
   in every state and process.
@@ -278,7 +278,7 @@ The host has to run the page and its actions in the same lua state (rest's
   `false` to replace elements.
 - **Ordering and errors**: actions are sent one at a time, in order. A 410
   response (ex. the server's state for the page is gone) reloads the page.
-- Pages without any actions are static: no client script (`isInteractive()` is
+- Pages without any actions are static: no client script (`is_interactive()` is
   false).
 
 ## Runtime API
@@ -294,7 +294,7 @@ The host has to run the page and its actions in the same lua state (rest's
 | `map(list, fn)` | list of `fn(value, index)` |
 | `escape(s)` | HTML escaped string |
 | `cx(...)` | joins class names (strings/numbers kept, `false`/`nil` dropped, tables flattened) |
-| `isElement(v)` | whether `v` was built by `h` |
+| `is_element(v)` | whether `v` was built by `h` |
 | `state(init)` | state of the component being rendered |
 | `css(rules)` | scoped styles, returns class names |
 | `styles()` | all styles, as a `<style>` (or `''`) |
@@ -302,12 +302,12 @@ The host has to run the page and its actions in the same lua state (rest's
 | `scripts()` | the module scripts of the element libraries used in the last render (or `''`) |
 | `mount(root, { rpc, headers, morph })` | makes `root()` the interactive page (actions POST to `rpc`, or the page's own url), returns `root()` |
 | `dispatch(id, data)` | runs an action, returns `{ headers, body }` (what changed) |
-| `isInteractive()` | whether the last render of the mounted page had actions |
+| `is_interactive()` | whether the last render of the mounted page had actions |
 | `session()` | a page of its own (state and actions), for hosts serving many pages from one state (see below) |
 | `s:render(root)` | renders `root()` (or a node) with the session's state, actions as `data-mn-<event>="id"` attributes |
 | `s:rerender()` | renders the last root again (ex. after an action) |
 | `s:dispatch(id, data)` | runs an action of the last render, `false` if there's no such action (stale) |
-| `s:isInteractive()` | whether the session's last render had actions |
+| `s:is_interactive()` | whether the session's last render had actions |
 
 ### Sessions
 

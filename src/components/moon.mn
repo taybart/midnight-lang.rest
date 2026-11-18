@@ -7,9 +7,9 @@ local PHASES = {
   'full moon', 'waning gibbous', 'last quarter', 'waning crescent',
 }
 
--- moonPhase returns how far into the month (0 new, 0.5 full), how much of
+-- moon_phase returns how far into the month (0 new, 0.5 full), how much of
 -- the face is lit (0 to 1), and the phase's name
-local function moonPhase(now = os.time()) {
+local function moon_phase(now = os.time()) {
   local frac = ((now - KNOWN_NEW_MOON) / 86400 % SYNODIC) / SYNODIC
   return (
     frac,
@@ -23,7 +23,7 @@ local function moonPhase(now = os.time()) {
 -- that bulges toward the lit side for a crescent and away from it for a
 -- gibbous moon.
 return () -> {
-  local frac, lit, name = moonPhase()
+  local frac, lit, name = moon_phase()
   local c, r = 12, 10
   local rx = r * math.abs(math.cos(2 * math.pi * frac))
   local waxing = frac < 0.5

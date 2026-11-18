@@ -1,6 +1,6 @@
 -- highlight.midnight — a tiny syntax highlighter for fenced code blocks.
 --
--- midnight and lua are colored by `midnight.syntax`'s highlight (midnight w/
+-- midnight and lua are colored by `midnight.syntax`'s highlight (midnight with
 -- the compiler's own lexer, so it's colored the way the compiler reads it,
 -- markup included), the same classes the playground's editor uses. `sh`,
 -- `json`, and `rest` / `hcl` (whose MIDNIGHT heredocs are midnight) have small
@@ -16,31 +16,30 @@
 local { h } = require('midnight.markup')
 local syntax = require('midnight.syntax')
 
-local M = {}
 
 -- token sets -------------------------------------------------------------
 
-local PUNCT = { ['(']=1, [')']=1, ['[']=1, [']']=1, [';']=1, [':']=1, [',']=1, ['.']=1 }
+local PUNCT = { ['('] = 1, [')'] = 1, ['['] = 1, [']'] = 1, [';'] = 1, [':'] = 1, [','] = 1, ['.'] = 1 }
 
 local SH_KW = {
-  ['if']=1, ['then']=1, ['else']=1, ['elif']=1, ['fi']=1, ['for']=1,
-  ['do']=1, ['done']=1, ['while']=1, ['until']=1, ['case']=1, ['esac']=1,
-  ['in']=1, ['function']=1, ['select']=1, ['return']=1, ['export']=1,
-  ['local']=1, ['break']=1, ['continue']=1,
+  ['if'] = 1, ['then'] = 1, ['else'] = 1, ['elif'] = 1, ['fi'] = 1, ['for'] = 1,
+  ['do'] = 1, ['done'] = 1, ['while'] = 1, ['until'] = 1, ['case'] = 1, ['esac'] = 1,
+  ['in'] = 1, ['function'] = 1, ['select'] = 1, ['return'] = 1, ['export'] = 1,
+  ['local'] = 1, ['break'] = 1, ['continue'] = 1,
 }
 
 local SH_BUILTIN = {
-  ['echo']=1, ['cd']=1, ['read']=1, ['printf']=1, ['test']=1, ['exit']=1,
-  ['set']=1, ['unset']=1, ['shift']=1, ['source']=1, ['eval']=1, ['exec']=1,
-  ['trap']=1, ['wait']=1, ['pwd']=1, ['type']=1, ['command']=1, ['builtin']=1,
+  ['echo'] = 1, ['cd'] = 1, ['read'] = 1, ['printf'] = 1, ['test'] = 1, ['exit'] = 1,
+  ['set'] = 1, ['unset'] = 1, ['shift'] = 1, ['source'] = 1, ['eval'] = 1, ['exec'] = 1,
+  ['trap'] = 1, ['wait'] = 1, ['pwd'] = 1, ['type'] = 1, ['command'] = 1, ['builtin'] = 1,
 }
 
 -- helpers ----------------------------------------------------------------
 
-local function isDigit(c) { return c:match('%d') != nil }
-local function isHex(c) { return c:match('[%da-fA-F]') != nil }
-local function isIdentStart(c) { return c:match('[%a_]') != nil }
-local function isIdentChar(c) { return c:match('[%w_]') != nil }
+local function is_digit(c) { return c:match('%d') != nil }
+local function is_hex(c) { return c:match('[%da-fA-F]') != nil }
+local function is_ident_start(c) { return c:match('[%a_]') != nil }
+local function is_ident_char(c) { return c:match('[%w_]') != nil }
 
 local function text(out, s) { out[#out + 1] = s }
 
@@ -48,27 +47,27 @@ local function span(out, cls, s) {
   out[#out + 1] = h('span', { class = cls }, s)
 }
 
-local function scanNumber(s, i) {
+local function scan_number(s, i) {
   local n = #s
   local j = i
   if s:sub(j, j + 1):lower() == '0x' {
     j = j + 2
-    while j <= n && isHex(s:sub(j, j)) { j = j + 1 }
+    while j <= n && is_hex(s:sub(j, j)) { j = j + 1 }
   } elseif s:sub(j, j + 1):lower() == '0b' {
     j = j + 2
     while j <= n && (s:sub(j, j) == '0' || s:sub(j, j) == '1') { j = j + 1 }
   } else {
-    while j <= n && isDigit(s:sub(j, j)) { j = j + 1 }
-    if j <= n && s:sub(j, j) == '.' && isDigit(s:sub(j + 1, j + 1)) {
+    while j <= n && is_digit(s:sub(j, j)) { j = j + 1 }
+    if j <= n && s:sub(j, j) == '.' && is_digit(s:sub(j + 1, j + 1)) {
       j = j + 1
-      while j <= n && isDigit(s:sub(j, j)) { j = j + 1 }
+      while j <= n && is_digit(s:sub(j, j)) { j = j + 1 }
     }
     if j <= n && s:sub(j, j):match('[eE]') {
       local k = j + 1
       if s:sub(k, k) == '+' || s:sub(k, k) == '-' { k = k + 1 }
-      if isDigit(s:sub(k, k)) {
+      if is_digit(s:sub(k, k)) {
         j = k
-        while j <= n && isDigit(s:sub(j, j)) { j = j + 1 }
+        while j <= n && is_digit(s:sub(j, j)) { j = j + 1 }
       }
     }
   }
@@ -79,7 +78,7 @@ local function scanNumber(s, i) {
 
 -- classed tokens from midnight.syntax (lang: 'midnight' or 'lua'), or nil if
 -- the host's midnight predates syntax.highlight (the block is then plain text)
-local function scanCode(lang, code) {
+local function scan_code(lang, code) {
   if syntax.highlight == nil { return nil }
   local out = {}
   for _, t in ipairs(syntax.highlight(code, lang)) {
@@ -88,12 +87,12 @@ local function scanCode(lang, code) {
   return out
 }
 
-local function scanMidnight(code) { return scanCode('midnight', code) }
-local function scanLua(code) { return scanCode('lua', code) }
+local function scan_midnight(code) { return scan_code('midnight', code) }
+local function scan_lua(code) { return scan_code('lua', code) }
 
 -- shell ------------------------------------------------------------------
 
-local function scanSh(s) {
+local function scan_sh(s) {
   local out = {}
   local n = #s
   local i = 1
@@ -145,13 +144,13 @@ local function scanSh(s) {
         span(out, 'tok-builtin', s:sub(i, j - 1))
         i = j
       }
-    } elseif isDigit(c) {
-      local e = scanNumber(s, i)
+    } elseif is_digit(c) {
+      local e = scan_number(s, i)
       span(out, 'tok-number', s:sub(i, e - 1))
       i = e
-    } elseif isIdentStart(c) {
+    } elseif is_ident_start(c) {
       local j = i
-      while j <= n && isIdentChar(s:sub(j, j)) { j = j + 1 }
+      while j <= n && is_ident_char(s:sub(j, j)) { j = j + 1 }
       local word = s:sub(i, j - 1)
       if SH_KW[word] {
         span(out, 'tok-keyword', word)
@@ -171,7 +170,7 @@ local function scanSh(s) {
 
 -- json -------------------------------------------------------------------
 
-local function scanJson(s) {
+local function scan_json(s) {
   local out = {}
   local n = #s
   local i = 1
@@ -196,14 +195,14 @@ local function scanJson(s) {
       }
       span(out, 'tok-string', table.concat(buf))
       i = j
-    } elseif isDigit(c) || (c == '-' && isDigit(s:sub(i + 1, i + 1))) {
+    } elseif is_digit(c) || (c == '-' && is_digit(s:sub(i + 1, i + 1))) {
       local start = i
-      local e = scanNumber(s, i + (if c == '-' { 1 } else { 0 }))
+      local e = scan_number(s, i + (if c == '-' { 1 } else { 0 }))
       span(out, 'tok-number', s:sub(start, e - 1))
       i = e
-    } elseif isIdentStart(c) {
+    } elseif is_ident_start(c) {
       local j = i
-      while j <= n && isIdentChar(s:sub(j, j)) { j = j + 1 }
+      while j <= n && is_ident_char(s:sub(j, j)) { j = j + 1 }
       local word = s:sub(i, j - 1)
       if word == 'true' || word == 'false' || word == 'null' {
         span(out, 'tok-const', word)
@@ -227,11 +226,11 @@ local function scanJson(s) {
 
 -- rest (hcl) ---------------------------------------------------------------
 
--- heredocs w/ these tags hold code
-local HEREDOC_CODE = { MIDNIGHT = scanMidnight, MN = scanMidnight, LUA = scanLua }
+-- heredocs with these tags hold code
+local HEREDOC_CODE = { MIDNIGHT = scan_midnight, MN = scan_midnight, LUA = scan_lua }
 
 -- an hcl string from i (at its `"`), with`${...}` interpolations
-local function hclString(s, i, out) {
+local function hcl_string(s, i, out) {
   local n = #s
   local j = i + 1
   local buf = { '"' }
@@ -262,15 +261,15 @@ local function hclString(s, i, out) {
   return j
 }
 
-local function scanHcl(s) {
+local function scan_hcl(s) {
   local out = {}
   local n = #s
   local i = 1
-  local lineStart = true -- only whitespace since the last newline
+  local line_start = true -- only whitespace since the last newline
   while i <= n {
     local c = s:sub(i, i)
-    local start = lineStart
-    if c != ' ' && c != '\t' { lineStart = c == '\n' }
+    local start = line_start
+    if c != ' ' && c != '\t' { line_start = c == '\n' }
 
     if c == '#' || s:sub(i, i + 1) == '//' {
       local e = s:find('\n', i, true) || n + 1
@@ -284,13 +283,13 @@ local function scanHcl(s) {
     } elseif s:sub(i, i + 1) == '<<' && s:sub(i + 2):match('^%-?[%a_][%w_]*\n') {
       -- heredoc: <<TAG / <<-TAG, up to a line that's just TAG
       local dash, tag = s:sub(i + 2):match('^(%-?)([%a_][%w_]*)')
-      local bodyStart = i + 2 + #dash + #tag + 1
-      local close = s:find('\n[ \t]*' .. tag .. '[ \t]*\n', bodyStart - 1) || s:find('\n[ \t]*' .. tag .. '[ \t]*$', bodyStart - 1)
-      local bodyEnd = if close { close } else { n + 1 }
+      local body_start = i + 2 + #dash + #tag + 1
+      local close = s:find('\n[ \t]*' .. tag .. '[ \t]*\n', body_start - 1) || s:find('\n[ \t]*' .. tag .. '[ \t]*$', body_start - 1)
+      local body_end = if close { close } else { n + 1 }
       span(out, 'tok-operator', '<<' .. dash)
       span(out, 'tok-builtin', tag)
       text(out, '\n')
-      local body = s:sub(bodyStart, bodyEnd - 1)
+      local body = s:sub(body_start, body_end - 1)
       local scan = HEREDOC_CODE[tag:upper()]
       local toks = scan && scan(body)
       if toks {
@@ -307,12 +306,12 @@ local function scanHcl(s) {
         i = n + 1
       }
     } elseif c == '"' {
-      i = hclString(s, i, out)
-    } elseif isDigit(c) {
-      local e = scanNumber(s, i)
+      i = hcl_string(s, i, out)
+    } elseif is_digit(c) {
+      local e = scan_number(s, i)
       span(out, 'tok-number', s:sub(i, e - 1))
       i = e
-    } elseif isIdentStart(c) {
+    } elseif is_ident_start(c) {
       local j = i
       while j <= n && s:sub(j, j):match('[%w_%-]') { j = j + 1 }
       local word = s:sub(i, j - 1)
@@ -343,14 +342,14 @@ local function scanHcl(s) {
 -- public -----------------------------------------------------------------
 
 local LANG = {
-  midnight = scanMidnight, mn = scanMidnight,
-  lua = scanLua,
-  sh = scanSh, bash = scanSh, shell = scanSh, zsh = scanSh,
-  json = scanJson,
-  rest = scanHcl, hcl = scanHcl,
+  midnight = scan_midnight, mn = scan_midnight,
+  lua = scan_lua,
+  sh = scan_sh, bash = scan_sh, shell = scan_sh, zsh = scan_sh,
+  json = scan_json,
+  rest = scan_hcl, hcl = scan_hcl,
 }
 
-function M.highlight(lang, code) {
+module function highlight(lang, code) {
   if code == nil { return nil }
   local name = if lang { lang } else { '' }
   name = name:gsub('%s.*$', ''):lower()
@@ -360,5 +359,3 @@ function M.highlight(lang, code) {
   if out == nil || #out == 0 { return nil }
   return out
 }
-
-return M

@@ -65,6 +65,8 @@ full of braces. In the other two, `\{` is a literal brace (escaping the
 closing `}` too is allowed, not required). Values go through `tostring`, so a
 `nil` shows up as `nil` rather than an error.
 
+### Formats
+
 Add `:%spec` to an interpolation to run it through `string.format`:
 
 ```midnight try
@@ -446,6 +448,109 @@ pattern when it can tell.
 - For `match` to be an expression, the subject has to be on the same line,
   followed by `{` and an arm. `local m = match` is just a variable.
 
+## catch
+
+`catch` runs an expression in protected mode (Lua's `pcall`), and if it
+throws, gives you something else instead:
+
+```midnight try
+local function wake(who) {
+  if who == 'bear' { error('it is winter', 0) }
+  return "{who} is up"
+}
+
+print(wake('owl') catch 'still asleep')        -- owl is up
+print(wake('bear') catch 'still asleep')       -- still asleep
+print(wake('bear') catch e { "no luck: {e}" }) -- no luck: it is winter
+```
+
+What comes after `catch` is the handler, and it has a few shapes:
+
+```midnight
+-- a fallback value
+local hour = tonumber(input) catch 7
+-- a value, with the error as e
+local alarm = parse_alarm(s) catch e { "bad alarm: {e}" }
+-- statements that leave
+local dream = recall(night) catch e { return nil, e }
+-- ignore the error, on purpose
+local quiet = snooze() catch nil
+
+-- as a statement, and ignoring it as one
+check_locks() catch e { log(e) }
+check_locks() catch {}
+```
+
+A block is either one expression, which becomes the value, or statements.
+Statements run in your function, not a function of their own, so `return`
+returns from it and `break` / `continue` move your loop along:
+
+```midnight try
+local function first_number(lines) {
+  for _, line in ipairs(lines) {
+    local n = (tonumber(line) || error('not a number')) catch { continue }
+    return n
+  }
+}
+print(first_number({ 'owl', 'moth', '3', '4' })) -- 3
+```
+
+The `recall` line above is the `pcall` you'd otherwise write by hand:
+
+```lua
+-- lua
+local ok, dream = pcall(recall, night)
+if not ok then return nil, dream end
+```
+
+The rules:
+
+- Nothing gets dropped by accident: every `catch` needs a handler. Ignoring
+  an error is something you write down, `catch nil` (or `catch {}` as a
+  statement).
+- Statements in a block have to leave: they end in `return`, `break`,
+  `continue`, `goto`, or `error(...)` (or an `if` whose branches all do),
+  since there's no value to fall back to otherwise.
+- Like [if expressions](#if-and-match-expressions), on the right of
+  `local x =`, `x =`, or `return` a catch compiles to plain statements, and
+  anywhere else it's wrapped in a function that's called on the spot. That
+  function would swallow a `return`, so a block with statements only works
+  on the right of `local x =`, `x =`, or `return`. Anywhere else it's a
+  compile error.
+- `catch` binds looser than any operator and protects everything on its
+  left, not just the last call: `a + f() catch 0` catches an error in the
+  sum, and `sky.moon.phase catch nil` catches indexing a `nil` `sky`. They
+  chain: `a() catch b() catch c` tries `a()`, then `b()`.
+- Only the first value comes through, from the expression and from the
+  handler alike.
+- A `{` after `catch` always starts a block, so an empty table is
+  `catch { {} }`.
+- In the header of an `if`, `elseif`, `while`, `for`, or `match`, a catch
+  doesn't take a block, since the `{` belongs to the statement:
+  `if wake(who) catch false { ... }`. Wrap it in parentheses if you need
+  one there.
+- `catch` is only a keyword after an expression, so `local catch = 1`,
+  `t.catch`, and `catch(x)` keep working.
+
+### Why there's sometimes a function
+
+`pcall` can only protect what runs inside it, and Lua evaluates a call's
+arguments before the call. In `pcall(sky.moon.phase)`, the lookups happen
+first, unprotected, and a `nil` `sky` throws straight past the `pcall`. So
+unless the left side is a plain call of a name with plain arguments, catch
+moves it into a small function and protects that:
+
+```lua
+-- tonumber(s) catch 0            (names: nothing to evaluate that can fail)
+pcall(tonumber, s)
+
+-- vim.fn.jobstart(cmd) catch 0   (a lookup, which can fail)
+pcall(function() return vim.fn.jobstart(cmd) end)
+```
+
+The function is made each time the catch runs, which costs about as much as
+a small table: nothing to worry about, except in a very hot loop.
+
 ## Classes
 
 `class` declares a table with methods, a constructor, and the metatable
@@ -586,7 +691,7 @@ scoped styles, and pages that update live.
 `if`, `in`, `local`, `module`, `repeat`, `return`, `until`, `while`, `true`,
 `false`, and `nil`.
 
-`goto`, `match`, and `class` only act as keywords in their own constructs. Lua's
+`goto`, `match`, `class`, and `catch` only act as keywords in their own constructs. Lua's
 `and`, `or`, `not`, `then`, and `end` aren't reserved at all, so they're
 free to use as names. One nice side effect: a half asleep `if not ready`
 fails to compile instead of doing something odd.

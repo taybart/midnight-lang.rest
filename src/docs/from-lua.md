@@ -146,6 +146,7 @@ Midnight accepts the language of the
 against its spec suite. On top of that it adds
 [`match`](/reference#match),
 [if and match expressions](/reference#if-and-match-expressions),
+[`catch`](/reference#catch),
 [interpolation formats](/reference#formats), and [markup](/markup). The other
 differences:
 

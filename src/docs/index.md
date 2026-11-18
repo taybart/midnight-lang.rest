@@ -180,7 +180,7 @@ the symbol operators, defaults, destructuring, arrow functions, `global` and
 `module`. Erde's idea that a nicer Lua should still teach you Lua is the
 whole foundation here. Midnight accepts Erde's language and is tested against
 the Erde compiler's own spec suite, then adds a few things for its own night
-shift (`match`, if expressions, formats, markup) and a Go runtime to run it
+shift (`match`, if expressions, `catch`, formats, markup) and a Go runtime to run it
 all on. If you want Lua with braces and don't need Go, go say hi to Erde.
 
 ## Explore

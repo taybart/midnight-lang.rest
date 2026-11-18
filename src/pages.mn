@@ -1,0 +1,34 @@
+-- The docs' pages, in nav order: each one's path, title, link preview text
+-- (description), and its markdown in src/docs (file; the playground has
+-- none). Used by the layout (the nav, link previews) and the search index
+-- (src/search).
+return {
+  {
+    path = '/', title = 'Introduction', file = 'index.md',
+    description = 'Midnight is a Lua dialect that runs on Go: braces, defaults, destructuring, string interpolation, match, and HTML markup, compiling to plain Lua.',
+  },
+  {
+    path = '/getting-started', title = 'Getting Started', file = 'getting-started.md',
+    description = 'Install the midnight CLI, run and compile scripts, and embed Midnight in Go programs.',
+  },
+  {
+    path = '/reference', title = 'Reference', file = 'reference.md',
+    description = 'The Midnight language, one feature at a time: strings, tables, destructuring, functions, scopes, operators, match, if expressions, catch, and classes.',
+  },
+  {
+    path = '/from-lua', title = 'Coming from Lua', file = 'from-lua.md',
+    description = 'What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.',
+  },
+  {
+    path = '/markup', title = 'Markup', file = 'markup.md',
+    description = 'HTML-style markup in Midnight: components, state, scoped styles, and interactive pages served by rest.',
+  },
+  {
+    path = '/tools', title = 'Tools', file = 'tools.md',
+    description = 'midnight compile, clean, lint, and fmt: what they do, their rules, and their output.',
+  },
+  {
+    path = '/playground', title = 'Playground',
+    description = 'Write and run Midnight in your browser, clickable pages included. Nothing to install.',
+  },
+}

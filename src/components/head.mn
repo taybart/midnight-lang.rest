@@ -1,0 +1,44 @@
+local Meta = require('src/components/meta')
+-- the nav, and each page's link preview text (see src/pages)
+local pages = require('src/pages')
+-- where the site lives, for link previews (they need absolute urls)
+local SITE_URL = 'https://midnight-lang.rest'
+
+local function page_for(path) {
+  for _, p in ipairs(pages) {
+    if p.path == path { return p }
+  }
+  return {}
+}
+
+-- (the import map is strict JSON: a trailing comma makes the browser drop the
+-- whole map, and every `import ... from '@taybart/corvid'` fails)
+return ({ title, path }) -> <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <Meta
+      title={title}
+      site="Midnight"
+      description={page_for(path).description}
+      url={"{SITE_URL}{path}"}
+      image="{SITE_URL}/img/og.png"
+      image_alt="midnight: a Lua dialect that runs on Go"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "@taybart/corvid": "/js/vendor/corvid.bundle.js"
+        }
+      }
+    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+    <link rel="stylesheet" href="/site.css"/>
+    <script>
+      {
+        try {
+          const t = localStorage.getItem('theme') || 'dark'
+          document.documentElement.setAttribute('data-theme', t)
+        } catch (e) {}
+      }
+    </script>
+  </head>

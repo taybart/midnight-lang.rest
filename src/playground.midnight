@@ -27,7 +27,7 @@ local EXAMPLES = {
   'endless_loop',
 }
 
-local function readExample(file) {
+local function read_example(file) {
   local path = "examples/{file}.mn"
   local f = assert(io.open(path, 'r'), "playground: cannot open {path}")
   local code = f:read('*a')
@@ -87,7 +87,7 @@ return () -> <div class="playground">
     them on a server.
   </p>--]]}
   {map(EXAMPLES, (file) -> {
-    local ex = readExample(file)
+    local ex = read_example(file)
     return <template class="pg-example" data-name={ex.name}>{ex.code}</template>
   })}
   <link rel="modulepreload" href="/js/vendor/corvid.bundle.js"/>

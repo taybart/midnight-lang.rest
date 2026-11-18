@@ -5,7 +5,8 @@ locals {
   handler   = <<-MIDNIGHT
     local Layout = require('src/layout')
     local md = require('lib/markdown')
-    return <Layout path="{{.path}}" title="{{.title}}">{md.file('src/docs/{{.file}}')}</Layout>
+    local doc = md.page('src/docs/{{.file}}')
+    return <Layout path="{{.path}}" title="{{.title}}" toc={doc.headings}>{doc.blocks}</Layout>
   MIDNIGHT
 }
 
@@ -66,6 +67,19 @@ server {
       local Layout = require('src/layout')
       local Playground = require('src/playground')
       return <Layout path="/playground" title="Playground" wide><Playground/></Layout>
+    MIDNIGHT
+  }
+
+  # the search index (see src/search and public/js/search.js): built once per
+  # cache_ttl, then searched in the browser
+  handler "GET" "/search.json" {
+    cache = locals.cache_ttl
+    fn = <<-MIDNIGHT
+      return {
+        status = 200,
+        headers = { ["Content-Type"] = "application/json" },
+        body = json.encode(require('src/search')()),
+      }
     MIDNIGHT
   }
 

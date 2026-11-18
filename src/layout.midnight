@@ -3,64 +3,67 @@
 --
 --   return <Layout path="/" title="Reference"> ... </Layout>
 --
--- The content itself is markdown, rendered by the `lib/markdown` module.
+-- The content itself is markdown, rendered by the `lib/markdown` module, whose
+-- h2 / h3 headings (`toc`) make the page's table of contents: a column on the
+-- right on wide screens, and nested under the page's link in the nav otherwise.
 -- The theme is client side: a tiny inline script reads/writes localStorage and
 -- sets `data-theme` on <html>, so the choice survives navigation.
 local { map, cx } = require('midnight.markup')
-local Meta = require('lib/meta')
-local Moon = require('components/moon')
 
--- where the site lives, for link previews (they need absolute urls)
-local SITE_URL = 'https://midnight-lang.rest'
+-- the site's own source (it's written in midnight, served by rest)
+local SITE_SOURCE = 'https://github.com/taybart/midnight-lang.rest'
+local Moon = require('src/components/moon')
+local Head = require('src/components/head')
 
--- the nav, and each page's link preview text
-local pages = {
-  {
-    path = '/', title = 'Introduction',
-    description = 'Midnight is a Lua dialect that runs on Go: braces, defaults, destructuring, string interpolation, match, and HTML markup, compiling to plain Lua.',
-  },
-  {
-    path = '/getting-started', title = 'Getting Started',
-    description = 'Install the midnight CLI, run and compile scripts, and embed Midnight in Go programs.',
-  },
-  {
-    path = '/reference', title = 'Reference',
-    description = 'The Midnight language, one feature at a time: strings, tables, destructuring, functions, scopes, operators, match, and if expressions.',
-  },
-  {
-    path = '/from-lua', title = 'Coming from Lua',
-    description = 'What changes when you come to Midnight from Lua: !=, symbols for and / or / not, arrow functions, and the Lua 5.1 runtime.',
-  },
-  {
-    path = '/markup', title = 'Markup',
-    description = 'HTML-style markup in Midnight: components, state, scoped styles, and interactive pages served by rest.',
-  },
-  {
-    path = '/tools', title = 'Tools',
-    description = 'midnight compile, clean, lint, and fmt: what they do, their rules, and their output.',
-  },
-  {
-    path = '/playground', title = 'Playground',
-    description = 'Write and run Midnight in your browser, clickable pages included. Nothing to install.',
-  },
-}
+-- the nav, and each page's link preview text (see src/pages)
+local pages = require('src/pages')
 
-local function pageFor(path) {
-  for _, p in ipairs(pages) {
-    if p.path == path { return p }
-  }
-  return {}
-}
+-- a magnifying glass (stroked with the text color)
+local SearchIcon = () -> <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round">
+  <circle cx="10.5" cy="10.5" r="6.5"/>
+  <path d="m15.5 15.5 5 5"/>
+</svg>
 
-local Sidebar = ({ path }) -> <>
+-- find anything: the dialog search.js fills in (its button is in the sidebar)
+local Search = () -> <>
+  <dialog class="search" id="search" aria-label="search the docs">
+    <div class="search-box">
+      <SearchIcon/>
+      <input id="search-input" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-controls="search-results"/>
+      <kbd class="search-esc">esc</kbd>
+    </div>
+    <div class="search-results" id="search-results" role="listbox" aria-label="results"></div>
+  </dialog>
+  <script type="module" src="/js/search.js"></script>
+</>
+
+-- a table of contents needs a few sections to be worth it
+local function has_toc(toc) { return toc != nil && #toc >= 3 }
+
+-- the page's sections, as links (data-toc: see the scroll spy below)
+local Toc = ({ headings }) -> <ul>
+  {map(headings, (hd) -> <li class="toc-h{hd.level}">
+    <a href="#{hd.id}" data-toc={hd.id}>{hd.children}</a>
+  </li>)}
+</ul>
+
+local Sidebar = ({ path, toc }) -> <>
    <script type="module">
-    import {dom, style, ls} from '/js/vendor/corvid.bundle.js'
+    import {dom, style, ls} from '@taybart/corvid'
     {
       const menu = new dom.el('#menu-toggle');
       const sidebar = new dom.el('#sidebar');
       menu.on('click', () => {
         sidebar.toggleClass('open')
         menu.attr('aria-expanded', sidebar.hasClass('open'))
+      })
+
+      // jumping to a section (the page's sections, under its link) closes the
+      // mobile menu, so you land on it
+      new dom.el('#nav').on('click', (e) => {
+        if (!e.target.closest('.nav-toc a')) return
+        sidebar.removeClass('open')
+        menu.attr('aria-expanded', false)
       })
 
       // auto-hide the mobile top bar: slide out on scroll down, back on up
@@ -79,6 +82,11 @@ local Sidebar = ({ path }) -> <>
   </script>
   <aside class="sidebar" id="sidebar">
     <a class="brand" href="/"><Moon/>midnight</a>
+    <button class="search-open" type="button" data-search-open title="search the docs" aria-label="search the docs" aria-keyshortcuts="Meta+K Control+K /">
+      <SearchIcon/>
+      <span class="search-label">Search</span>
+      <kbd class="search-kbd">⌘K</kbd>
+    </button>
     <button class="menu-toggle" id="menu-toggle" title="menu" aria-label="toggle menu" aria-expanded="false">
       <span class="bar"></span>
       <span class="bar"></span>
@@ -88,6 +96,9 @@ local Sidebar = ({ path }) -> <>
     <ul>
       {map(pages, (p) -> <li>
         <a href={p.path} class={cx({ active = p.path == path })}>{p.title}</a>
+        {p.path == path && has_toc(toc) && <nav class="nav-toc" aria-label="sections">
+          <Toc headings={toc}/>
+        </nav>}
       </li>)}
     </ul>
     </nav>
@@ -99,36 +110,74 @@ local Sidebar = ({ path }) -> <>
   </aside>
 </>
 
-return ({ title, path, children, wide }) -> <html>
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <Meta
-      title={title}
-      site="Midnight"
-      description={pageFor(path).description}
-      url={"{SITE_URL}{path}"}
-      image="{SITE_URL}/img/og.png"
-      imageAlt="midnight: a Lua dialect that runs on Go"
-    />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-    <link rel="stylesheet" href="/site.css"/>
-    <script>
-      {
-        try {
-          const t = localStorage.getItem('theme') || 'dark'
-          document.documentElement.setAttribute('data-theme', t)
-        } catch (e) {}
+-- highlights the section you're reading in the tables of contents (the last
+-- heading above the top of the window), and keeps it in view in the column
+local ScrollSpy = () -> <script type="module">
+  {
+    const links = [...document.querySelectorAll('[data-toc]')]
+    const heads = [...new Set(links.map((a) => a.dataset.toc))]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean)
+    const column = document.querySelector('.toc')
+    let current = null
+
+    const reveal = (a) => {
+      const top = a.offsetTop - column.scrollTop
+      if (top < 0 || top + a.offsetHeight > column.clientHeight) {
+        column.scrollTop = a.offsetTop - column.clientHeight / 3
       }
-    </script>
-  </head>
+    }
+
+    const update = () => {
+      let id = heads[0]?.id
+      for (const hd of heads) {
+        if (hd.getBoundingClientRect().top > 120) break
+        id = hd.id
+      }
+      // (at the bottom, the last sections may never reach the top)
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) {
+        id = heads[heads.length - 1]?.id
+      }
+      if (id === current) return
+      current = id
+      for (const a of links) {
+        const on = a.dataset.toc === id
+        a.classList.toggle('current', on)
+        if (on && column?.contains(a)) reveal(a)
+      }
+    }
+
+    let queued = false
+    addEventListener('scroll', () => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(() => { queued = false; update() })
+    }, { passive: true })
+    addEventListener('resize', update)
+    update()
+  }
+</script>
+
+return ({ title, path, children, wide, toc }) -> <html>
+  <Head title={title} path={path} />
   <body>
-    <div class="layout">
-      <Sidebar path={path} />
-      <main class={cx("content", { wide = wide })}>{children}</main>
+    <div class={cx("layout", { ['has-toc'] = has_toc(toc) })}>
+      <Sidebar path={path} toc={toc} />
+      <main class={cx("content", { wide = wide })}>
+        {children}
+        <footer class="site-footer">
+          <a href={SITE_SOURCE}>this site runs on midnight<Moon/></a>
+        </footer>
+      </main>
+      {has_toc(toc) && <aside class="toc" aria-label="on this page">
+        <p class="toc-title">On this page</p>
+        <Toc headings={toc}/>
+      </aside>}
     </div>
+    {has_toc(toc) && <ScrollSpy/>}
+    <Search/>
     <script type="module">
-      import {dom, style, ls, clipboard} from '/js/vendor/corvid.bundle.js'
+      import {dom, style, ls, clipboard} from '@taybart/corvid'
       {
         // listen to system theme if nothing set
         if (!ls.get('theme')) style.handleThemeSwitch()
@@ -150,7 +199,7 @@ return ({ title, path, children, wide }) -> <html>
       }
      </script>
     <script type="module">
-      import {dom, style, ls, clipboard} from '/js/vendor/corvid.bundle.js'
+      import {dom, style, ls, clipboard} from '@taybart/corvid'
       {
         // "Try it" buttons (```midnight try) open the block in the playground
         dom.on('click', async (e) => {
